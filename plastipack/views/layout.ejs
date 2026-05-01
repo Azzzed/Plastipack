@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#06080f" />
+  <title><%= titulo %> · Plastipack</title>
+  <link rel="stylesheet" href="/css/style.css" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' x2='1' y1='0' y2='1'%3E%3Cstop offset='0' stop-color='%234cc9ff'/%3E%3Cstop offset='1' stop-color='%237c5cff'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='8' fill='url(%23g)'/%3E%3C/svg%3E" />
+</head>
+<body>
+
+  <% if (user) { %>
+    <header class="topbar">
+      <a href="/" class="brand">
+        <span class="brand-mark"></span>
+        <span>Plastipack</span>
+      </a>
+
+      <nav>
+        <% if (user.rol === 'vendedor') { %>
+          <a href="/pedidos" class="<%= path.startsWith('/pedidos') ? 'active' : '' %>">Pedidos</a>
+          <a href="/pedidos/nuevo" class="<%= path === '/pedidos/nuevo' ? 'active' : '' %>">Nuevo</a>
+        <% } else if (user.rol === 'jefe' || user.rol === 'admin') { %>
+          <a href="/dashboard" class="<%= path === '/dashboard' ? 'active' : '' %>">Inicio</a>
+          <a href="/referencias" class="<%= path.startsWith('/referencias') ? 'active' : '' %>">Referencias</a>
+          <a href="/ordenes" class="<%= path === '/ordenes' ? 'active' : '' %>">Órdenes</a>
+          <a href="/reportes" class="<%= path === '/reportes' ? 'active' : '' %>">Reportes</a>
+          <a href="/admin/usuarios" class="<%= path === '/admin/usuarios' ? 'active' : '' %>">Usuarios</a>
+        <% } else if (user.rol === 'operario') { %>
+          <a href="/operario" class="active">Mi producción</a>
+        <% } %>
+      </nav>
+
+      <div class="user-chip">
+        <% if (user.avatar) { %><img src="<%= user.avatar %>" alt="" /><% } %>
+        <span><%= user.nombre.split(' ')[0] %> · <%= user.rol %></span>
+      </div>
+
+      <a href="/auth/logout" class="btn btn-ghost" style="padding:8px 12px;font-size:.8rem;">Salir</a>
+    </header>
+  <% } %>
+
+  <% if ((success && success.length) || (error && error.length)) { %>
+    <div class="flash">
+      <% (success || []).forEach(function(m){ %><div class="success"><%= m %></div><% }) %>
+      <% (error || []).forEach(function(m){ %><div class="error"><%= m %></div><% }) %>
+    </div>
+  <% } %>
+
+  <main class="shell">
+    <%- body %>
+  </main>
+
+</body>
+</html>

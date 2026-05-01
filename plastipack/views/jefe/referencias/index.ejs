@@ -1,0 +1,48 @@
+<div class="glass">
+  <div class="flex-between">
+    <div>
+      <h1>Referencias</h1>
+      <p class="muted" style="margin:0;">Catálogo de SKU activos</p>
+    </div>
+    <a href="/referencias/nueva" class="btn btn-primary">+ Nueva</a>
+  </div>
+
+  <form method="GET" action="/referencias" class="mt-12">
+    <div class="field" style="margin:0;">
+      <input name="q" value="<%= q || '' %>" placeholder="Buscar por SKU, nombre o materia prima..." />
+    </div>
+  </form>
+</div>
+
+<div class="glass">
+  <% if (!referencias.length) { %>
+    <p class="muted">No hay referencias.</p>
+  <% } else { %>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>SKU</th><th>Nombre</th><th>Tipo</th>
+            <th>Materia prima</th><th>Destino</th><th>Impresión</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% referencias.forEach(function(r){ %>
+            <tr>
+              <td><strong><%= r.sku %></strong></td>
+              <td><%= r.nombre %></td>
+              <td><span class="badge en_produccion"><%= r.tipo %></span></td>
+              <td><%= r.materiaPrima %></td>
+              <td><%= r.destino %></td>
+              <td>
+                <% if (r.impresion && r.impresion.lleva) { %>
+                  Sí (<%= r.impresion.colores %> col.)
+                <% } else { %>—<% } %>
+              </td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</div>

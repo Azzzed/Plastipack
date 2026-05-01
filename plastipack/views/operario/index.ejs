@@ -1,0 +1,167 @@
+<!--
+  Vista principal del Operario (mobile-first).
+  Pasos:
+    1. Elegir selladora (1..5)
+    2. Elegir referencia disponible (planilla del día)
+    3. Llenar el turno: rollo, horas, producción, desperdicio
+-->
+
+<div class="glass">
+  <h1>Mi producción</h1>
+  <p class="muted" style="margin:0 0 14px;">Selecciona tu selladora y registra el turno.</p>
+
+  <h3>Selladora</h3>
+  <div class="machines">
+    <% selladoras.forEach(function(n){ %>
+      <a href="/operario?selladora=<%= n %>" class="machine <%= n === selladora ? 'active' : '' %>">
+        <span class="num"><%= n %></span>
+        <span class="lbl">Selladora</span>
+      </a>
+    <% }); %>
+  </div>
+</div>
+
+<div class="glass">
+  <h2>Planilla del día — Selladora <%= selladora %></h2>
+  <p class="tiny">
+    Toca una referencia para cargar sus datos en el formulario.
+    Una misma referencia puede ser trabajada por otras selladoras al mismo tiempo.
+  </p>
+
+  <% if (itemsDisponibles.length === 0) { %>
+    <p class="muted">No hay referencias en producción en este momento.</p>
+  <% } else { %>
+    <div id="lista-items">
+      <% itemsDisponibles.forEach(function(it){
+        var pct = Math.min(100, Math.round((it.producido / it.cantidad) * 100));
+      %>
+        <div class="item-card"
+             data-orden="<%= it.ordenId %>"
+             data-orden-num="<%= it.ordenNumero %>"
+             data-item="<%= it.itemId %>"
+             data-sku="<%= it.referencia.sku %>"
+             data-pendiente="<%= it.pendiente %>">
+          <div style="flex:1;">
+            <div class="sku"><%= it.referencia.sku %> · <%= it.ordenNumero %></div>
+            <div class="nombre"><%= it.referencia.nombre %></div>
+            <div class="meta">
+              <%= it.producido %> / <%= it.cantidad %> ud — pendiente <strong><%= it.pendiente %></strong>
+            </div>
+            <div class="progress"><div style="width: <%= pct %>%"></div></div>
+          </div>
+          <span class="badge en_produccion">En producción</span>
+        </div>
+      <% }); %>
+    </div>
+  <% } %>
+</div>
+
+<div class="glass" id="form-card">
+  <h2>Registrar turno</h2>
+
+  <form action="/operario/turno" method="POST" autocomplete="off">
+    <input type="hidden" name="selladora" value="<%= selladora %>" />
+    <input type="hidden" name="ordenId" id="ordenId" />
+    <input type="hidden" name="itemId" id="itemId" />
+
+    <div class="field">
+      <label>Referencia seleccionada</label>
+      <input id="refSeleccionada" placeholder="Toca una referencia arriba" readonly />
+    </div>
+
+    <div class="field">
+      <label>Número de rollo montado</label>
+      <input name="numeroRollo" required placeholder="ej. R-2026-04812" inputmode="text" />
+    </div>
+
+    <div class="row cols-2">
+      <div class="field">
+        <label>Hora de inicio</label>
+        <input type="datetime-local" name="horaInicio" id="horaInicio" required />
+      </div>
+      <div class="field">
+        <label>Hora de fin</label>
+        <input type="datetime-local" name="horaFin" id="horaFin" required />
+      </div>
+    </div>
+
+    <div class="row cols-2">
+      <div class="field">
+        <label>Cantidad producida (ud)</label>
+        <input type="number" name="cantidadProducida" min="1" required inputmode="numeric" />
+        <div class="hint" id="hintPendiente"></div>
+      </div>
+      <div class="field">
+        <label>Desperdicio (kg)</label>
+        <input type="number" name="desperdicio" min="0" step="0.01" value="0" required inputmode="decimal" />
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Observaciones (opcional)</label>
+      <textarea name="observaciones" placeholder="Paradas, fallas, notas del turno..."></textarea>
+    </div>
+
+    <button type="submit" class="btn btn-primary btn-block">Guardar turno</button>
+  </form>
+</div>
+
+<% if (misLogs && misLogs.length) { %>
+  <div class="glass">
+    <h2>Mis registros de hoy</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Hora</th><th>Sell.</th><th>Pedido</th><th>SKU</th><th>Rollo</th>
+            <th style="text-align:right;">Producido</th><th style="text-align:right;">Desp. kg</th><th>Min</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% misLogs.forEach(function(l){ %>
+            <tr>
+              <td><%= new Date(l.horaInicio).toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'}) %></td>
+              <td><%= l.selladora %></td>
+              <td><%= l.orden ? l.orden.numero : '—' %></td>
+              <td><%= l.referencia ? l.referencia.sku : '—' %></td>
+              <td><%= l.numeroRollo %></td>
+              <td style="text-align:right;"><%= l.cantidadProducida %></td>
+              <td style="text-align:right;"><%= l.desperdicio_kg %></td>
+              <td><%= l.duracionMin %></td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+<% } %>
+
+<script>
+  // Selección de item — copia los datos al formulario
+  document.querySelectorAll('.item-card').forEach(function(card){
+    card.addEventListener('click', function(){
+      document.querySelectorAll('.item-card').forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+      document.getElementById('ordenId').value = card.dataset.orden;
+      document.getElementById('itemId').value = card.dataset.item;
+      document.getElementById('refSeleccionada').value =
+        card.dataset.sku + ' (' + card.dataset.ordenNum + ')';
+      document.getElementById('hintPendiente').textContent =
+        'Pendiente en este pedido: ' + card.dataset.pendiente + ' ud (puedes producir solo una parte).';
+      document.getElementById('form-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
+
+  // Por defecto, la hora de inicio es ahora menos 1h y la de fin "ahora"
+  (function setHorasDefault(){
+    var ahora = new Date();
+    var antes = new Date(ahora.getTime() - 60*60*1000);
+    function fmt(d){
+      var pad = n => String(n).padStart(2,'0');
+      return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())
+        +'T'+pad(d.getHours())+':'+pad(d.getMinutes());
+    }
+    document.getElementById('horaInicio').value = fmt(antes);
+    document.getElementById('horaFin').value    = fmt(ahora);
+  })();
+</script>

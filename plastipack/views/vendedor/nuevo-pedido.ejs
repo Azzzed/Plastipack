@@ -1,0 +1,123 @@
+<div class="glass">
+  <h1>Nuevo pedido</h1>
+  <p class="muted" style="margin:0 0 14px;">
+    El pedido pasa automáticamente a producción al crearse.
+    Fecha de entrega mínima: <strong><%= new Date(fechaMinima).toLocaleDateString('es-CO') %></strong> (15 días).
+  </p>
+
+  <form action="/pedidos" method="POST" id="form-pedido">
+    <div class="row cols-2">
+      <div class="field">
+        <label>Cliente</label>
+        <input name="clienteNombre" required placeholder="Nombre del cliente" />
+      </div>
+      <div class="field">
+        <label>Contacto</label>
+        <input name="clienteContacto" placeholder="Teléfono o correo" />
+      </div>
+    </div>
+
+    <div class="row cols-2">
+      <div class="field">
+        <label>Destino</label>
+        <select name="destino" required>
+          <option value="externo">Cliente externo</option>
+          <option value="interno">Consumo interno</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Fecha de entrega</label>
+        <input type="date" name="fechaEntrega" min="<%= fechaMinima %>" value="<%= fechaMinima %>" required />
+      </div>
+    </div>
+  </form>
+
+  <h2 class="mt-20">Referencias del pedido</h2>
+
+  <div class="field autocomplete">
+    <label>Buscar y agregar referencia</label>
+    <input id="buscador" placeholder="Escribe SKU o nombre (mínimo 2 caracteres)" autocomplete="off" />
+    <div id="resultados" class="autocomplete-list" style="display:none;"></div>
+  </div>
+
+  <div id="items-container">
+    <!-- Los items se insertan aquí dinámicamente -->
+  </div>
+
+  <p class="tiny">Agrega al menos una referencia. Indica cantidad y valor unitario.</p>
+
+  <div class="field">
+    <label>Notas (opcional)</label>
+    <textarea form="form-pedido" name="notas" placeholder="Instrucciones especiales..."></textarea>
+  </div>
+
+  <button type="submit" form="form-pedido" class="btn btn-primary btn-block mt-12">
+    Crear pedido y enviar a producción
+  </button>
+</div>
+
+<script>
+  const buscador  = document.getElementById('buscador');
+  const resultados = document.getElementById('resultados');
+  const container = document.getElementById('items-container');
+  const form = document.getElementById('form-pedido');
+
+  let timer;
+  buscador.addEventListener('input', function(){
+    clearTimeout(timer);
+    const q = this.value.trim();
+    if (q.length < 2) { resultados.style.display = 'none'; return; }
+    timer = setTimeout(async () => {
+      try {
+        const r = await fetch('/pedidos/api/referencias?q=' + encodeURIComponent(q));
+        const refs = await r.json();
+        if (!refs.length) {
+          resultados.innerHTML = '<div style="color:var(--text-mute);">Sin resultados</div>';
+        } else {
+          resultados.innerHTML = refs.map(r => `
+            <div data-id="${r._id}" data-sku="${r.sku}" data-nombre="${r.nombre}">
+              <span class="sku">${r.sku}</span> · ${r.nombre}
+              <div class="tiny" style="color:var(--text-mute);">${r.tipo} · ${r.materiaPrima || ''}</div>
+            </div>
+          `).join('');
+        }
+        resultados.style.display = 'block';
+      } catch(e){ console.error(e); }
+    }, 250);
+  });
+
+  resultados.addEventListener('click', function(e){
+    const opt = e.target.closest('[data-id]');
+    if (!opt) return;
+    agregarItem(opt.dataset.id, opt.dataset.sku, opt.dataset.nombre);
+    buscador.value = '';
+    resultados.style.display = 'none';
+  });
+
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.autocomplete')) resultados.style.display = 'none';
+  });
+
+  function agregarItem(id, sku, nombre){
+    if (form.querySelector(`input[name="items[ref]"][value="${id}"]`)) return;
+    const div = document.createElement('div');
+    div.className = 'line-item';
+    div.innerHTML = `
+      <div>
+        <div style="font-weight:600;">${sku}</div>
+        <div class="tiny">${nombre}</div>
+        <input type="hidden" name="items[ref]" value="${id}" form="form-pedido" />
+      </div>
+      <div>
+        <label class="tiny">Cant.</label>
+        <input type="number" name="items[cantidad]" min="1" value="1000" form="form-pedido" required />
+      </div>
+      <div>
+        <label class="tiny">Valor unit.</label>
+        <input type="number" name="items[valor]" min="0" step="0.01" value="0" form="form-pedido" required />
+      </div>
+      <button type="button" class="btn-remove" onclick="this.parentElement.remove()">×</button>
+    `;
+    container.appendChild(div);
+  }
+</script>

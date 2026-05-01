@@ -1,0 +1,43 @@
+<div class="glass">
+  <div class="flex-between">
+    <div>
+      <h1>Pedidos</h1>
+      <p class="muted" style="margin:0;">
+        <% if (user.rol === 'vendedor') { %>Tus pedidos<% } else { %>Todos los pedidos<% } %>
+      </p>
+    </div>
+    <% if (user.rol === 'vendedor') { %>
+      <a href="/pedidos/nuevo" class="btn btn-primary">+ Nuevo pedido</a>
+    <% } %>
+  </div>
+</div>
+
+<div class="glass">
+  <% if (pedidos.length === 0) { %>
+    <p class="muted">Aún no hay pedidos.</p>
+  <% } else { %>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>N°</th><th>Cliente</th><th>Items</th><th style="text-align:right;">Total</th>
+            <th>Entrega</th><th>Estado</th><th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% pedidos.forEach(function(p){ %>
+            <tr>
+              <td><strong><%= p.numero %></strong></td>
+              <td><%= p.cliente.nombre %></td>
+              <td><%= p.items.length %> ref.</td>
+              <td style="text-align:right;">$<%= (p.total || 0).toLocaleString('es-CO') %></td>
+              <td><%= new Date(p.fechaEntrega).toLocaleDateString('es-CO') %></td>
+              <td><span class="badge <%= p.estadoGeneral %>"><%= p.estadoGeneral.replace('_',' ') %></span></td>
+              <td><a href="/pedidos/<%= p._id %>">Ver →</a></td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</div>

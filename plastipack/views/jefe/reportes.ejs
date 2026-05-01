@@ -1,0 +1,108 @@
+<div class="glass">
+  <h1>Reportes de producción</h1>
+
+  <form method="GET" action="/reportes" class="row cols-3 mt-12">
+    <div class="field">
+      <label>Desde</label>
+      <input type="date" name="desde" value="<%= desde %>" />
+    </div>
+    <div class="field">
+      <label>Hasta</label>
+      <input type="date" name="hasta" value="<%= hasta %>" />
+    </div>
+    <div class="field" style="display:flex;align-items:end;">
+      <button class="btn btn-primary btn-block">Filtrar</button>
+    </div>
+  </form>
+</div>
+
+<div class="glass">
+  <h2>Totales del periodo</h2>
+  <div class="stats">
+    <div class="stat"><div class="lbl">Turnos</div><div class="val neon"><%= totales.turnos %></div></div>
+    <div class="stat"><div class="lbl">Producción (ud)</div><div class="val"><%= totales.producido.toLocaleString('es-CO') %></div></div>
+    <div class="stat"><div class="lbl">Desperdicio (kg)</div><div class="val"><%= totales.desperdicio.toFixed(2) %></div></div>
+    <div class="stat"><div class="lbl">Operarios</div><div class="val"><%= filasOperarios.length %></div></div>
+  </div>
+</div>
+
+<div class="glass">
+  <h2>Por selladora</h2>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Selladora</th><th>Turnos</th><th style="text-align:right;">Producido</th><th style="text-align:right;">Desperdicio kg</th></tr>
+      </thead>
+      <tbody>
+        <% [1,2,3,4,5].forEach(function(n){
+          var fila = porSelladora.find(p => p._id === n) || { turnos: 0, producido: 0, desperdicio: 0 };
+        %>
+          <tr>
+            <td><strong>Selladora <%= n %></strong></td>
+            <td><%= fila.turnos %></td>
+            <td style="text-align:right;"><%= fila.producido.toLocaleString('es-CO') %></td>
+            <td style="text-align:right;"><%= fila.desperdicio.toFixed(2) %></td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="glass">
+  <h2>Por operario</h2>
+  <% if (!filasOperarios.length) { %>
+    <p class="muted">Sin registros en el periodo.</p>
+  <% } else { %>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Operario</th><th>Turnos</th><th style="text-align:right;">Producido</th><th style="text-align:right;">Desperdicio kg</th></tr>
+        </thead>
+        <tbody>
+          <% filasOperarios.forEach(function(f){ %>
+            <tr>
+              <td><%= f.nombre %><div class="tiny"><%= f.email %></div></td>
+              <td><%= f.turnos %></td>
+              <td style="text-align:right;"><%= f.producido.toLocaleString('es-CO') %></td>
+              <td style="text-align:right;"><%= f.desperdicio.toFixed(2) %></td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</div>
+
+<div class="glass">
+  <h2>Últimos turnos registrados</h2>
+  <% if (!ultimosLogs.length) { %>
+    <p class="muted">Sin registros.</p>
+  <% } else { %>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Fecha</th><th>Operario</th><th>Sell.</th><th>Pedido</th><th>SKU</th>
+            <th>Rollo</th><th style="text-align:right;">Prod.</th><th style="text-align:right;">Desp.</th><th>Min</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% ultimosLogs.forEach(function(l){ %>
+            <tr>
+              <td class="tiny"><%= new Date(l.horaInicio).toLocaleString('es-CO') %></td>
+              <td><%= l.operario ? l.operario.nombre.split(' ')[0] : '—' %></td>
+              <td><%= l.selladora %></td>
+              <td><%= l.orden ? l.orden.numero : '—' %></td>
+              <td><%= l.referencia ? l.referencia.sku : '—' %></td>
+              <td><%= l.numeroRollo %></td>
+              <td style="text-align:right;"><%= l.cantidadProducida %></td>
+              <td style="text-align:right;"><%= l.desperdicio_kg %></td>
+              <td><%= l.duracionMin %></td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</div>

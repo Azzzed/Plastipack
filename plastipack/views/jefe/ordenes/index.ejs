@@ -1,0 +1,41 @@
+<div class="glass">
+  <h1>Órdenes activas</h1>
+  <p class="muted" style="margin:0;">Pedidos no entregados, ordenados por fecha de entrega.</p>
+</div>
+
+<div class="glass">
+  <% if (!ordenes.length) { %>
+    <p class="muted">No hay órdenes activas.</p>
+  <% } else { %>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>N°</th><th>Cliente</th><th>Vendedor</th><th>Items</th>
+            <th>Entrega</th><th>Estado</th><th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% ordenes.forEach(function(o){
+            var dias = Math.ceil((new Date(o.fechaEntrega) - new Date()) / (1000*60*60*24));
+          %>
+            <tr>
+              <td><strong><%= o.numero %></strong></td>
+              <td><%= o.cliente.nombre %></td>
+              <td><%= o.vendedor ? o.vendedor.nombre.split(' ')[0] : '—' %></td>
+              <td><%= o.items.length %> ref.</td>
+              <td>
+                <%= new Date(o.fechaEntrega).toLocaleDateString('es-CO') %>
+                <div class="tiny <%= dias < 5 ? 'badge en_espera' : '' %>" style="display:inline-block;margin-left:6px;">
+                  <%= dias > 0 ? dias + ' días' : 'vencida' %>
+                </div>
+              </td>
+              <td><span class="badge <%= o.estadoGeneral %>"><%= o.estadoGeneral.replace('_',' ') %></span></td>
+              <td><a href="/pedidos/<%= o._id %>">Gestionar →</a></td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</div>

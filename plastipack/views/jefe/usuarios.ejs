@@ -1,0 +1,62 @@
+<div class="glass">
+  <h1>Gestión de usuarios</h1>
+  <p class="muted" style="margin:0;">Asigna roles a los nuevos miembros del equipo.</p>
+</div>
+
+<% if (pendientes.length) { %>
+  <div class="glass">
+    <h2>Cuentas pendientes (<%= pendientes.length %>)</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Usuario</th><th>Email</th><th>Asignar rol</th></tr></thead>
+        <tbody>
+          <% pendientes.forEach(function(u){ %>
+            <tr>
+              <td><strong><%= u.nombre %></strong></td>
+              <td><%= u.email %></td>
+              <td>
+                <form method="POST" action="/admin/usuarios/<%= u._id %>/rol" style="display:flex;gap:6px;">
+                  <select name="rol" required style="padding:8px;background:rgba(7,11,25,.65);color:var(--text);border:1px solid var(--border);border-radius:8px;">
+                    <option value="vendedor">Vendedor</option>
+                    <option value="operario">Operario</option>
+                    <option value="jefe">Jefe</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                  <button class="btn btn-primary" style="padding:8px 14px;">Asignar</button>
+                </form>
+              </td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+<% } %>
+
+<div class="glass">
+  <h2>Todos los usuarios (<%= todos.length %>)</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Usuario</th><th>Email</th><th>Rol actual</th><th>Cambiar</th></tr></thead>
+      <tbody>
+        <% todos.forEach(function(u){ %>
+          <tr>
+            <td><strong><%= u.nombre %></strong></td>
+            <td><%= u.email %></td>
+            <td><span class="badge <%= u.rol === 'pendiente' ? 'en_espera' : 'en_produccion' %>"><%= u.rol %></span></td>
+            <td>
+              <form method="POST" action="/admin/usuarios/<%= u._id %>/rol" style="display:flex;gap:6px;">
+                <select name="rol" style="padding:6px;background:rgba(7,11,25,.65);color:var(--text);border:1px solid var(--border);border-radius:8px;">
+                  <% roles.forEach(function(r){ %>
+                    <option value="<%= r %>" <%= u.rol === r ? 'selected' : '' %>><%= r %></option>
+                  <% }); %>
+                </select>
+                <button class="btn" style="padding:6px 10px;font-size:.8rem;">OK</button>
+              </form>
+            </td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </div>
+</div>
