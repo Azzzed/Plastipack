@@ -59,5 +59,26 @@
   <%- body %>
 </main>
 
+<%/* ── Neutraliza cualquier drawer/modal abierto por JS externos ── */%>
+<script>
+(function () {
+  function killRogueDrawers() {
+    document.querySelectorAll('.drawer, .drawer-overlay, .modal-overlay').forEach(function (el) {
+      el.classList.remove('open');
+      // Solo ocultar si NO tiene un botón de apertura manual en la página
+      if (!document.querySelector('[data-drawer-managed]')) {
+        el.style.display = 'none';
+      }
+    });
+  }
+  // Ejecutar inmediatamente al parsear el script
+  killRogueDrawers();
+  // Ejecutar también tras DOMContentLoaded (cubre scripts diferidos)
+  document.addEventListener('DOMContentLoaded', killRogueDrawers);
+  // Ejecutar tras window.load (cubre scripts async)
+  window.addEventListener('load', killRogueDrawers);
+})();
+</script>
+
 </body>
 </html>

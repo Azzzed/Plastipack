@@ -2,7 +2,7 @@
   <div class="card-header">
     <div>
       <h1>Buenos días, <%= user.nombre.split(' ')[0] %></h1>
-      <p class="sub">Panel de <%= user.rol === 'admin' ? 'Administración' : 'Jefe de Producción' %></p>
+      <p class="sub">Panel de <%= user.rol === 'admin' ? 'Administración' : 'Jefe de Producción' %> · <%= new Date().toLocaleDateString('es-CO', {weekday:'long', year:'numeric', month:'long', day:'numeric'}) %></p>
     </div>
     <a href="/referencias/nueva" class="btn btn-primary">+ Nueva referencia</a>
   </div>
@@ -10,23 +10,89 @@
   <div class="stats-grid">
     <a href="/ordenes" class="stat-tile" style="text-decoration:none;">
       <div class="st-label">Órdenes activas</div>
-      <div class="st-val">→</div>
+      <div class="st-val"><%= stats.ordenesActivas %></div>
       <div class="st-sub">Pedidos en planta</div>
     </a>
     <a href="/referencias" class="stat-tile" style="text-decoration:none;">
-      <div class="st-label">Catálogo</div>
-      <div class="st-val">→</div>
-      <div class="st-sub">~150 K referencias</div>
+      <div class="st-label">Referencias</div>
+      <div class="st-val"><%= stats.totalReferencias %></div>
+      <div class="st-sub">SKUs en catálogo</div>
     </a>
     <a href="/reportes" class="stat-tile" style="text-decoration:none;">
-      <div class="st-label">Producción</div>
-      <div class="st-val">→</div>
-      <div class="st-sub">Reportes por turno</div>
+      <div class="st-label">Producción hoy</div>
+      <div class="st-val"><%= stats.produccionHoy.toLocaleString('es-CO') %></div>
+      <div class="st-sub">Unidades registradas</div>
     </a>
     <a href="/admin/usuarios" class="stat-tile" style="text-decoration:none;">
       <div class="st-label">Equipo</div>
-      <div class="st-val">→</div>
-      <div class="st-sub">Asignar roles</div>
+      <div class="st-val"><%= stats.totalOperarios %></div>
+      <div class="st-sub"><%= stats.pendientes > 0 ? stats.pendientes + ' pendiente(s)' : 'Todos con rol' %></div>
     </a>
   </div>
 </div>
+
+<% if (ordenesUrgentes && ordenesUrgentes.length) { %>
+<div class="card">
+  <div class="card-header">
+    <h2>⚠ Entregas próximas</h2>
+    <a href="/ordenes" class="btn btn-ghost btn-sm">Ver todas →</a>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th>Pedido</th><th>Cliente</th><th>Refs</th><th>Entrega</th><th>Días</th><th>Estado</th><th></th>
+      </tr></thead>
+      <tbody>
+        <%
+          const eb = e => ({
+            en_espera:'badge-espera', en_produccion:'badge-produccion',
+            parcial:'badge-parcial', completado:'badge-completado', entregado:'badge-entregado'
+          }[e]||'badge-espera');
+        %>
+        <% ordenesUrgentes.forEach(o => {
+          const dias = Math.ceil((new Date(o.fechaEntrega)-new Date())/(86400000));
+        %>
+          <tr>
+            <td class="td-mono"><strong style="color:var(--ink)"><%= o.numero %></strong></td>
+            <td><%= o.cliente.nombre %></td>
+            <td class="td-mono"><%= o.items.length %></td>
+            <td class="dim"><%= new Date(o.fechaEntrega).toLocaleDateString('es-CO') %></td>
+            <td>
+              <span class="badge <%=dias<=2?'badge-espera':dias<=5?'badge-parcial':'badge-produccion'%>">
+                <%= dias > 0 ? dias+'d' : 'Vencida' %>
+              </span>
+            </td>
+            <td><span class="badge <%= eb(o.estadoGeneral) %>"><%= o.estadoGeneral.replace('_',' ') %></span></td>
+            <td><a href="/pedidos/<%= o._id %>" class="btn btn-ghost btn-sm">Ver →</a></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</div>
+<% } %>
+
+<% if (ultimosLogs && ultimosLogs.length) { %>
+<div class="card">
+  <div class="card-header">
+    <h2>Actividad reciente</h2>
+    <a href="/reportes" class="btn btn-ghost btn-sm">Reportes →</a>
+  </div>
+  <div class="activity-feed">
+    <% ultimosLogs.forEach(l => { %>
+      <div class="activity-item">
+        <div class="activity-dot"></div>
+        <div class="activity-text">
+          <strong style="color:var(--ink-2)"><%= l.operario ? l.operario.nombre.split(' ')[0] : '—' %></strong>
+          · Selladora <%= l.selladora %>
+          · <span class="sku-tag"><%= l.referencia ? l.referencia.sku : '—' %></span>
+          · <strong style="color:var(--ink-2)"><%= l.cantidadProducida.toLocaleString('es-CO') %> ud</strong>
+        </div>
+        <div class="activity-time">
+          <%= new Date(l.horaInicio).toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'}) %>
+        </div>
+      </div>
+    <% }) %>
+  </div>
+</div>
+<% } %>

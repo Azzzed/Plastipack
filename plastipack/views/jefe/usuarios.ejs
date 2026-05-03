@@ -1,40 +1,199 @@
 <%
   const rb = r => ({admin:'badge-admin',jefe:'badge-jefe',vendedor:'badge-vendedor',
     operario:'badge-operario',pendiente:'badge-pendiente'}[r]||'badge-pendiente');
+  const initials = n => n.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
+  const roleIcon = r => ({admin:'⚡',jefe:'🎯',vendedor:'💼',operario:'⚙️',pendiente:'⏳'}[r]||'?');
 %>
 
 <div class="card">
-  <h1>Gestión del equipo</h1>
-  <p class="sub">Asigna roles a los usuarios registrados en el sistema.</p>
+  <div class="card-header">
+    <div>
+      <h1>Gestión del equipo</h1>
+      <p class="sub"><%= todos.length %> usuario<%= todos.length!==1?'s':'' %> registrados</p>
+    </div>
+    <div class="flex gap-8">
+      <div class="view-toggle">
+        <button class="view-toggle-btn active" onclick="setTeamView('cards',this)">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          Tarjetas
+        </button>
+        <button class="view-toggle-btn" onclick="setTeamView('table',this)">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/></svg>
+          Tabla
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats de roles -->
+  <div class="stats-grid-3" style="margin-top:0;">
+    <%
+      const rolCounts = {};
+      todos.forEach(u => { rolCounts[u.rol] = (rolCounts[u.rol] || 0) + 1; });
+    %>
+    <div class="stat-tile">
+      <div class="st-label">⚡ Admins / Jefes</div>
+      <div class="st-val"><%= (rolCounts['admin']||0) + (rolCounts['jefe']||0) %></div>
+    </div>
+    <div class="stat-tile">
+      <div class="st-label">💼 Vendedores / ⚙️ Operarios</div>
+      <div class="st-val"><%= (rolCounts['vendedor']||0) + (rolCounts['operario']||0) %></div>
+    </div>
+    <div class="stat-tile">
+      <div class="st-label">⏳ Pendientes de rol</div>
+      <div class="st-val"><%= rolCounts['pendiente'] || 0 %></div>
+    </div>
+  </div>
 </div>
 
-<% if(pendientes.length){ %>
-  <div class="card">
+<!-- ══════ PENDIENTES ══════ -->
+<% if (pendientes.length) { %>
+  <div class="card" style="border-color:rgba(255,255,255,0.20);">
     <div class="card-header">
-      <h2>Cuentas pendientes</h2>
+      <div>
+        <h2>⏳ Cuentas pendientes</h2>
+        <p class="sub">Estos usuarios no pueden operar hasta que les asignes un rol</p>
+      </div>
       <span class="badge badge-espera"><%= pendientes.length %> sin rol</span>
     </div>
+    <div class="team-grid">
+      <% pendientes.forEach(u => { %>
+        <div class="member-card">
+          <div class="member-avatar"><%= initials(u.nombre) %></div>
+          <div class="member-name"><%= u.nombre %></div>
+          <div class="member-email"><%= u.email %></div>
+          <div class="dim" style="font-size:0.70rem;margin-bottom:12px;">
+            Registrado <%= new Date(u.createdAt).toLocaleDateString('es-CO') %>
+          </div>
+          <!-- Selector de rol con botones tipo chip -->
+          <form method="POST" action="/admin/usuarios/<%= u._id %>/rol">
+            <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:center;margin-bottom:10px;">
+              <% ['vendedor','operario','jefe','admin'].forEach(r => { %>
+                <label style="cursor:pointer;">
+                  <input type="radio" name="rol" value="<%= r %>"
+                         style="display:none;"
+                         onchange="activarBtnPend(this,'btn-pend-<%= u._id %>')">
+                  <span class="rol-chip" data-rol="<%= r %>">
+                    <%= roleIcon(r) %> <%= r %>
+                  </span>
+                </label>
+              <% }) %>
+            </div>
+            <button type="submit" class="btn btn-primary btn-block btn-sm"
+                    id="btn-pend-<%= u._id %>" disabled>
+              Asignar rol
+            </button>
+          </form>
+        </div>
+      <% }) %>
+    </div>
+  </div>
+<% } %>
+
+<!-- ══════ FILTROS ══════ -->
+<div class="card" style="padding:14px 22px;">
+  <div class="flex-between" style="align-items:center;flex-wrap:wrap;gap:8px;">
+    <div class="filter-bar" style="margin-bottom:0;">
+      <span class="dim" style="font-size:0.72rem;letter-spacing:.5px;text-transform:uppercase;">Rol:</span>
+      <button class="filter-chip active" onclick="filterTeam('all',this)">Todos</button>
+      <button class="filter-chip" onclick="filterTeam('admin',this)">Admin</button>
+      <button class="filter-chip" onclick="filterTeam('jefe',this)">Jefe</button>
+      <button class="filter-chip" onclick="filterTeam('vendedor',this)">Vendedor</button>
+      <button class="filter-chip" onclick="filterTeam('operario',this)">Operario</button>
+    </div>
+    <div style="position:relative;max-width:240px;width:100%;">
+      <div class="field mb-0">
+        <input type="text" placeholder="Buscar usuario…" oninput="searchTeam(this.value)" />
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ CARDS VIEW ══════ -->
+<div id="team-cards">
+  <div class="team-grid">
+    <% todos.forEach((u, idx) => { %>
+      <div class="member-card"
+           data-rol="<%= u.rol %>"
+           data-nombre="<%= u.nombre.toLowerCase() %>"
+           data-email="<%= u.email.toLowerCase() %>"
+           style="animation:slideUp 0.3s ease both;animation-delay:<%= idx * 0.04 %>s;">
+        <div style="position:absolute;top:12px;right:12px;">
+          <span class="badge <%= rb(u.rol) %>"><%= u.rol %></span>
+        </div>
+        <div class="member-avatar">
+          <% if (u.avatar) { %>
+            <img src="<%= u.avatar %>" alt="<%= u.nombre %>" />
+          <% } else { %>
+            <%= initials(u.nombre) %>
+          <% } %>
+        </div>
+        <div class="member-name"><%= u.nombre %></div>
+        <div class="member-email"><%= u.email %></div>
+        <div class="dim" style="font-size:0.68rem;margin-bottom:12px;text-transform:uppercase;letter-spacing:0.5px;">
+          <%= u.authProvider || 'local' %>
+        </div>
+        <!-- Cambiar rol con chips radio -->
+        <form method="POST" action="/admin/usuarios/<%= u._id %>/rol">
+          <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:center;margin-bottom:8px;">
+            <% roles.forEach(r => { %>
+              <label style="cursor:pointer;">
+                <input type="radio" name="rol" value="<%= r %>"
+                       <%= u.rol === r ? 'checked' : '' %>
+                       style="display:none;"
+                       onchange="this.closest('form').submit()">
+                <span class="rol-chip <%= u.rol === r ? 'rol-chip-active' : '' %>">
+                  <%= roleIcon(r) %> <%= r %>
+                </span>
+              </label>
+            <% }) %>
+          </div>
+        </form>
+      </div>
+    <% }) %>
+  </div>
+</div>
+
+<!-- ══════ TABLE VIEW ══════ -->
+<div id="team-table" style="display:none;">
+  <div class="card">
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Usuario</th><th>Email</th><th>Fecha registro</th><th>Asignar rol</th></tr></thead>
+        <thead>
+          <tr>
+            <th>Usuario</th><th>Email</th><th>Auth</th><th>Rol actual</th><th>Cambiar rol</th>
+          </tr>
+        </thead>
         <tbody>
-          <% pendientes.forEach(u=>{ %>
-            <tr>
-              <td style="font-weight:500;color:var(--ink)"><%= u.nombre %></td>
-              <td class="dim"><%= u.email %></td>
-              <td class="dim" style="white-space:nowrap;">
-                <%= new Date(u.createdAt).toLocaleDateString('es-CO') %>
+          <% todos.forEach(u => { %>
+            <tr data-rol="<%= u.rol %>"
+                data-nombre="<%= u.nombre.toLowerCase() %>"
+                data-email="<%= u.email.toLowerCase() %>">
+              <td>
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <div style="width:28px;height:28px;border-radius:50%;background:var(--glass-fill-hover);border:1px solid var(--edge-dim);display:flex;align-items:center;justify-content:center;font-size:0.72rem;font-weight:700;flex-shrink:0;overflow:hidden;">
+                    <% if (u.avatar) { %>
+                      <img src="<%= u.avatar %>" style="width:100%;height:100%;object-fit:cover;" />
+                    <% } else { %>
+                      <%= initials(u.nombre) %>
+                    <% } %>
+                  </div>
+                  <span style="font-weight:500;color:var(--ink)"><%= u.nombre %></span>
+                </div>
               </td>
+              <td class="dim"><%= u.email %></td>
+              <td><span class="badge" style="font-size:0.62rem;"><%= u.authProvider || 'local' %></span></td>
+              <td><span class="badge <%= rb(u.rol) %>"><%= roleIcon(u.rol) %> <%= u.rol %></span></td>
               <td>
                 <form method="POST" action="/admin/usuarios/<%= u._id %>/rol"
                       style="display:flex;gap:6px;align-items:center;">
-                  <select name="rol" style="padding:7px 28px 7px 10px;background:rgba(0,0,0,.5);color:var(--ink);border:1px solid var(--edge);border-radius:var(--r-sm);font-size:.82rem;outline:none;">
-                    <option value="vendedor">Vendedor</option>
-                    <option value="operario">Operario</option>
-                    <option value="jefe">Jefe</option>
-                    <option value="admin">Admin</option>
+                  <select name="rol"
+                          style="padding:6px 28px 6px 8px;background:rgba(0,0,0,.5);color:var(--ink);border:1px solid var(--edge);border-radius:var(--r-sm);font-size:.78rem;outline:none;background-image:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='rgba(255,255,255,0.3)' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E\");background-repeat:no-repeat;background-position:right 8px center;">
+                    <% roles.forEach(r => { %>
+                      <option value="<%= r %>" <%= u.rol === r ? 'selected' : '' %>><%= r %></option>
+                    <% }) %>
                   </select>
-                  <button class="btn btn-sm btn-primary">Asignar</button>
+                  <button class="btn btn-sm">OK</button>
                 </form>
               </td>
             </tr>
@@ -43,36 +202,41 @@
       </table>
     </div>
   </div>
-<% } %>
-
-<div class="card">
-  <h2 style="margin-bottom:14px;">Todos los usuarios (<%= todos.length %>)</h2>
-  <div class="table-wrap">
-    <table>
-      <thead><tr><th>Usuario</th><th>Email</th><th>Auth</th><th>Rol actual</th><th>Cambiar</th></tr></thead>
-      <tbody>
-        <% todos.forEach(u=>{ %>
-          <tr>
-            <td style="font-weight:500;color:var(--ink)"><%= u.nombre %></td>
-            <td class="dim"><%= u.email %></td>
-            <td class="dim" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;">
-              <%= u.authProvider || 'local' %>
-            </td>
-            <td><span class="badge <%= rb(u.rol) %>"><%= u.rol %></span></td>
-            <td>
-              <form method="POST" action="/admin/usuarios/<%= u._id %>/rol"
-                    style="display:flex;gap:6px;align-items:center;">
-                <select name="rol" style="padding:6px 28px 6px 8px;background:rgba(0,0,0,.5);color:var(--ink);border:1px solid var(--edge);border-radius:var(--r-sm);font-size:.78rem;outline:none;">
-                  <% roles.forEach(r=>{ %>
-                    <option value="<%= r %>" <%= u.rol===r?'selected':'' %>><%= r %></option>
-                  <% }) %>
-                </select>
-                <button class="btn btn-sm">OK</button>
-              </form>
-            </td>
-          </tr>
-        <% }) %>
-      </tbody>
-    </table>
-  </div>
 </div>
+
+<script>
+function setTeamView(v, btn) {
+  document.querySelectorAll('.view-toggle-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('team-cards').style.display = v === 'cards' ? '' : 'none';
+  document.getElementById('team-table').style.display = v === 'table' ? '' : 'none';
+}
+
+function filterTeam(rol, btn) {
+  document.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  applyTeamFilter();
+}
+function searchTeam(q) { applyTeamFilter(); }
+
+function applyTeamFilter() {
+  const activeChip = document.querySelector('.filter-chip.active');
+  const rol = activeChip ? activeChip.textContent.toLowerCase().trim() : 'todos';
+  const query = document.querySelector('input[placeholder="Buscar usuario…"]').value.toLowerCase();
+
+  document.querySelectorAll('[data-rol][data-nombre]').forEach(el => {
+    const matchRol = (rol === 'todos' || rol === 'all') || el.dataset.rol === rol;
+    const matchQ = !query || el.dataset.nombre.includes(query) || el.dataset.email.includes(query);
+    el.style.display = matchRol && matchQ ? '' : 'none';
+  });
+}
+
+function activarBtnPend(radio, btnId) {
+  const btn = document.getElementById(btnId);
+  if (btn) btn.disabled = false;
+  // Resaltar chip seleccionado
+  const chips = radio.closest('form').querySelectorAll('.rol-chip');
+  chips.forEach(c => c.classList.remove('rol-chip-active'));
+  radio.nextElementSibling.classList.add('rol-chip-active');
+}
+</script>

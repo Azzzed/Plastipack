@@ -1,0 +1,63 @@
+
+/* ─── ADDITIONS: mini-chart, card-interactive, rol-chip ─────────── */
+
+/* Mini sparkline inside stat-tile */
+.mini-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 22px;
+  margin-top: 10px;
+}
+.mini-bar {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.35);
+  border-radius: 2px 2px 0 0;
+  min-height: 3px;
+  transition: height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Clickable stat tile (quick links) */
+.card-interactive {
+  cursor: pointer;
+}
+.card-interactive:hover {
+  border-color: var(--edge-bright);
+  transform: translateY(-3px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+}
+
+/* Role-chip (radio-button-style pill for role selection) */
+.rol-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: var(--r-pill);
+  font-size: 0.70rem;
+  font-weight: 500;
+  border: 1px solid var(--edge-dim);
+  background: transparent;
+  color: var(--ink-4);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--transition);
+  user-select: none;
+  -webkit-user-select: none;
+}
+.rol-chip:hover {
+  border-color: var(--edge);
+  color: var(--ink-2);
+  background: var(--ink-5);
+}
+.rol-chip-active {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: var(--edge-bright);
+  color: var(--ink);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+input[type="radio"]:checked + .rol-chip {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: var(--edge-bright);
+  color: var(--ink);
+}

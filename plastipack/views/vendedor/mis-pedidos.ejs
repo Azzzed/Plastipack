@@ -9,7 +9,9 @@
   <div class="card-header">
     <div>
       <h1>Pedidos</h1>
-      <p class="sub"><% if(user.rol==='vendedor'){%>Tus pedidos activos<%}else{%>Todos los pedidos<%}%></p>
+      <p class="sub">
+        <% if(user.rol==='vendedor'){%>Tus pedidos activos<%}else{%>Todos los pedidos<%}%>
+      </p>
     </div>
     <% if(user.rol==='vendedor'){%>
       <a href="/pedidos/nuevo" class="btn btn-primary">+ Nuevo pedido</a>
@@ -17,7 +19,9 @@
   </div>
 
   <% if(!pedidos.length){ %>
-    <div class="inset text-center"><p class="muted" style="padding:24px 0;">Aún no hay pedidos.</p></div>
+    <div class="inset text-center">
+      <p class="muted" style="padding:24px 0;">Aún no hay pedidos.</p>
+    </div>
   <% } else { %>
     <div class="table-wrap">
       <table>
@@ -28,20 +32,127 @@
         <tbody>
           <% pedidos.forEach(p => {
             const dias = Math.ceil((new Date(p.fechaEntrega)-new Date())/(1000*60*60*24));
+            const pid  = String(p._id);
           %>
+            <!-- Fila principal -->
             <tr>
-              <td class="td-mono"><strong style="color:var(--ink)"><%= p.numero %></strong></td>
+              <td class="td-mono">
+                <strong style="color:var(--ink)"><%= p.numero %></strong>
+              </td>
               <td><%= p.cliente.nombre %></td>
               <td class="td-mono"><%= p.items.length %></td>
-              <td class="td-right td-mono">$<%= (p.total||0).toLocaleString('es-CO') %></td>
+              <td class="td-right td-mono">
+                $<%= (p.total||0).toLocaleString('es-CO') %>
+              </td>
               <td>
-                <span style="font-size:0.82rem;"><%= new Date(p.fechaEntrega).toLocaleDateString('es-CO') %></span>
+                <span style="font-size:0.82rem;">
+                  <%= new Date(p.fechaEntrega).toLocaleDateString('es-CO') %>
+                </span>
                 <% if(dias>=0&&dias<=5){%>
                   <span class="badge badge-espera" style="margin-left:4px;"><%= dias %>d</span>
                 <%}%>
               </td>
-              <td><span class="badge <%= estadoBadge(p.estadoGeneral) %>"><%= p.estadoGeneral.replace('_',' ') %></span></td>
-              <td><a href="/pedidos/<%= p._id %>" class="btn btn-ghost btn-sm">Ver →</a></td>
+              <td>
+                <span class="badge <%= estadoBadge(p.estadoGeneral) %>">
+                  <%= p.estadoGeneral.replace('_',' ') %>
+                </span>
+              </td>
+              <td style="display:flex;gap:6px;align-items:center;">
+                <button class="expand-btn" id="pbtn-<%= pid %>"
+                        onclick="togglePedido('<%= pid %>')"
+                        type="button" title="Ver detalles">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                       stroke="currentColor" stroke-width="2"
+                       stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="6 9 12 15 18 9"/>
+                  </svg>
+                </button>
+                <a href="/pedidos/<%= pid %>" class="btn btn-ghost btn-sm">
+                  Detalle →
+                </a>
+              </td>
+            </tr>
+
+            <!-- Fila expandible (oculta por defecto) -->
+            <tr class="expand-row" id="prow-<%= pid %>">
+              <td colspan="7">
+                <div class="expand-content">
+
+                  <!-- Info del cliente -->
+                  <div class="info-grid" style="margin-bottom:14px;">
+                    <div class="info-row">
+                      <span class="info-label">Cliente</span>
+                      <span class="info-value"><%= p.cliente.nombre %></span>
+                    </div>
+                    <div class="info-row">
+                      <span class="info-label">Contacto</span>
+                      <span class="info-value"><%= p.cliente.contacto || '—' %></span>
+                    </div>
+                    <div class="info-row">
+                      <span class="info-label">Destino</span>
+                      <span class="info-value"><%= p.destino %></span>
+                    </div>
+                    <div class="info-row">
+                      <span class="info-label">Fecha entrega</span>
+                      <span class="info-value">
+                        <%= new Date(p.fechaEntrega).toLocaleDateString('es-CO') %>
+                      </span>
+                    </div>
+                    <div class="info-row">
+                      <span class="info-label">Total pedido</span>
+                      <span class="info-value">
+                        $<%= (p.total||0).toLocaleString('es-CO') %>
+                      </span>
+                    </div>
+                  </div>
+
+                  <!-- Referencias -->
+                  <div style="margin-bottom:12px;">
+                    <div style="font-size:.70rem;font-weight:600;letter-spacing:.8px;
+                                text-transform:uppercase;color:var(--ink-4);margin-bottom:8px;">
+                      Referencias
+                    </div>
+                    <% p.items.forEach(it => {
+                      const pct = it.cantidad > 0 ? Math.min(100, Math.round(((it.producido||0)/it.cantidad)*100)) : 0;
+                    %>
+                      <div class="inset" style="margin-bottom:6px;">
+                        <div style="display:flex;align-items:center;gap:8px;
+                                    flex-wrap:wrap;margin-bottom:4px;">
+                          <span class="sku-tag">
+                            <%= it.referencia ? it.referencia.sku : '—' %>
+                          </span>
+                          <span class="badge <%= estadoBadge(it.estado) %>"
+                                style="font-size:.63rem;">
+                            <%= it.estado.replace('_',' ') %>
+                          </span>
+                        </div>
+                        <div style="font-size:.82rem;color:var(--ink-2);margin-bottom:4px;">
+                          <%= it.referencia ? it.referencia.nombre : '—' %>
+                        </div>
+                        <div class="dim">
+                          <%= (it.producido||0).toLocaleString('es-CO') %> /
+                          <%= it.cantidad.toLocaleString('es-CO') %> ud
+                          &nbsp;·&nbsp; $<%= it.valorUnitario.toLocaleString('es-CO') %>/ud
+                        </div>
+                        <div class="progress-bar" style="margin-top:8px;">
+                          <div class="progress-bar-fill" style="width: <%= pct %>%;"></div>
+                        </div>
+                      </div>
+                    <% }) %>
+                  </div>
+
+                  <% if(p.notas){ %>
+                    <div class="inset" style="margin-bottom:12px;">
+                      <span class="info-label" style="display:block;margin-bottom:4px;">Notas</span>
+                      <p class="muted" style="font-size:.85rem;"><%= p.notas %></p>
+                    </div>
+                  <% } %>
+
+                  <a href="/pedidos/<%= pid %>" class="btn btn-primary btn-sm">
+                    Ver detalle completo →
+                  </a>
+                </div>
+              </td>
             </tr>
           <% }) %>
         </tbody>
@@ -49,3 +160,36 @@
     </div>
   <% } %>
 </div>
+
+<script>
+(function () {
+  function togglePedido(id) {
+    var row = document.getElementById('prow-' + id);
+    var btn = document.getElementById('pbtn-' + id);
+    if (!row) return;
+    var opening = !row.classList.contains('open');
+
+    // Cerrar todos primero
+    document.querySelectorAll('.expand-row').forEach(function (r) {
+      r.classList.remove('open');
+    });
+    document.querySelectorAll('.expand-btn').forEach(function (b) {
+      b.classList.remove('open');
+    });
+
+    // Abrir el seleccionado si estaba cerrado
+    if (opening) {
+      row.classList.add('open');
+      btn.classList.add('open');
+    }
+  }
+
+  window.togglePedido = togglePedido;
+
+  // Seguridad: cerrar cualquier drawer o modal abierto por JS externo
+  document.querySelectorAll('.drawer, .drawer-overlay, .modal-overlay').forEach(function (el) {
+    el.classList.remove('open');
+    el.style.display = 'none';
+  });
+})();
+</script>

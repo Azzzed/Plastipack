@@ -4,6 +4,12 @@
       <h1>Reportes de producción</h1>
       <p class="sub"><%= desde %> → <%= hasta %></p>
     </div>
+    <div class="flex gap-8 no-print">
+      <button class="btn btn-sm btn-ghost" onclick="exportPDF('Reporte Plastipack')">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Descargar PDF
+      </button>
+    </div>
   </div>
 
   <form method="GET" action="/reportes">
@@ -17,45 +23,75 @@
   </form>
 </div>
 
-<div class="card">
-  <h3>Resumen del periodo</h3>
-  <div class="stats-grid">
-    <div class="stat-tile">
-      <div class="st-label">Turnos totales</div>
-      <div class="st-val"><%= totales.turnos %></div>
-    </div>
-    <div class="stat-tile">
-      <div class="st-label">Producción (ud)</div>
-      <div class="st-val"><%= totales.producido.toLocaleString('es-CO') %></div>
-    </div>
-    <div class="stat-tile">
-      <div class="st-label">Desperdicio (kg)</div>
-      <div class="st-val"><%= totales.desperdicio.toFixed(2) %></div>
-    </div>
-    <div class="stat-tile">
-      <div class="st-label">Operarios</div>
-      <div class="st-val"><%= filasOperarios.length %></div>
-    </div>
+<!-- KPIs -->
+<div class="stats-grid">
+  <div class="stat-tile">
+    <div class="st-label">Turnos totales</div>
+    <div class="st-val"><%= totales.turnos %></div>
+  </div>
+  <div class="stat-tile">
+    <div class="st-label">Producción (ud)</div>
+    <div class="st-val"><%= totales.producido.toLocaleString('es-CO') %></div>
+  </div>
+  <div class="stat-tile">
+    <div class="st-label">Desperdicio (kg)</div>
+    <div class="st-val"><%= totales.desperdicio.toFixed(2) %></div>
+  </div>
+  <div class="stat-tile">
+    <div class="st-label">Operarios activos</div>
+    <div class="st-val"><%= filasOperarios.length %></div>
   </div>
 </div>
 
+<!-- Por selladora -->
 <div class="card">
-  <h3>Por selladora</h3>
+  <h3 style="margin-bottom:14px;">Por selladora</h3>
+  <%
+    const maxProd = Math.max(...[1,2,3,4,5].map(n=>{
+      const f=porSelladora.find(p=>p._id===n)||{producido:0};
+      return f.producido;
+    }), 1);
+  %>
+  <div class="chart-bars" style="height:100px;margin-bottom:14px;">
+    <% [1,2,3,4,5].forEach((n,i)=>{ 
+      const f=porSelladora.find(p=>p._id===n)||{turnos:0,producido:0,desperdicio:0};
+      const h=Math.max(4,Math.round((f.producido/maxProd)*100));
+    %>
+      <div class="chart-bar-wrap">
+        <div class="chart-bar-val">
+          <%= f.producido>0?(f.producido>=1000?(f.producido/1000).toFixed(1)+'k':f.producido):'' %>
+        </div>
+        <div class="chart-bar" style="height:<%= h %>%;animation-delay:<%= i*0.08 %>s;"
+             title="Sell. <%= n %>: <%= f.producido.toLocaleString('es-CO') %> ud"></div>
+        <div class="chart-bar-label">S<%= n %></div>
+      </div>
+    <% }) %>
+  </div>
   <div class="table-wrap">
     <table>
       <thead><tr>
-        <th>Selladora</th><th class="td-right">Turnos</th>
-        <th class="td-right">Producción (ud)</th><th class="td-right">Desperdicio (kg)</th>
+        <th>Selladora</th>
+        <th class="td-right">Turnos</th>
+        <th class="td-right">Producción (ud)</th>
+        <th class="td-right">Desperdicio (kg)</th>
+        <th>Rendimiento</th>
       </tr></thead>
       <tbody>
         <% [1,2,3,4,5].forEach(n => {
           const f = porSelladora.find(p=>p._id===n)||{turnos:0,producido:0,desperdicio:0};
+          const pct = totales.producido>0?Math.round((f.producido/totales.producido)*100):0;
         %>
           <tr>
             <td><strong>Selladora <%= n %></strong></td>
             <td class="td-right td-mono"><%= f.turnos %></td>
             <td class="td-right td-mono"><%= f.producido.toLocaleString('es-CO') %></td>
             <td class="td-right td-mono"><%= f.desperdicio.toFixed(2) %></td>
+            <td style="min-width:120px;">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <div class="progress-bar" style="flex:1;"><div class="progress-bar-fill" style="width:<%= pct %>%"></div></div>
+                <span class="dim" style="font-size:0.72rem;width:32px;text-align:right;"><%= pct %>%</span>
+              </div>
+            </td>
           </tr>
         <% }) %>
       </tbody>
@@ -63,17 +99,23 @@
   </div>
 </div>
 
+<!-- Por operario -->
 <% if(filasOperarios.length){ %>
   <div class="card">
-    <h3>Por operario</h3>
+    <h3 style="margin-bottom:14px;">Por operario</h3>
     <div class="table-wrap">
       <table>
         <thead><tr>
-          <th>Operario</th><th class="td-right">Turnos</th>
-          <th class="td-right">Producción</th><th class="td-right">Desperdicio kg</th>
+          <th>Operario</th>
+          <th class="td-right">Turnos</th>
+          <th class="td-right">Producción</th>
+          <th class="td-right">Desperdicio kg</th>
+          <th>Contribución</th>
         </tr></thead>
         <tbody>
-          <% filasOperarios.forEach(f=>{ %>
+          <% filasOperarios.forEach(f=>{ 
+            const pct = totales.producido>0?Math.round((f.producido/totales.producido)*100):0;
+          %>
             <tr>
               <td>
                 <span style="font-weight:500;color:var(--ink)"><%= f.nombre %></span>
@@ -82,6 +124,12 @@
               <td class="td-right td-mono"><%= f.turnos %></td>
               <td class="td-right td-mono"><%= f.producido.toLocaleString('es-CO') %></td>
               <td class="td-right td-mono"><%= f.desperdicio.toFixed(2) %></td>
+              <td style="min-width:120px;">
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <div class="progress-bar" style="flex:1;"><div class="progress-bar-fill" style="width:<%= pct %>%"></div></div>
+                  <span class="dim" style="font-size:0.72rem;width:32px;text-align:right;"><%= pct %>%</span>
+                </div>
+              </td>
             </tr>
           <% }) %>
         </tbody>
@@ -90,9 +138,13 @@
   </div>
 <% } %>
 
+<!-- Últimos turnos -->
 <% if(ultimosLogs.length){ %>
   <div class="card">
-    <h3>Últimos turnos registrados</h3>
+    <div class="card-header" style="margin-bottom:14px;">
+      <h3 style="margin-bottom:0;">Últimos turnos registrados</h3>
+      <span class="dim"><%= ultimosLogs.length %> registros</span>
+    </div>
     <div class="table-wrap">
       <table>
         <thead><tr>
@@ -121,3 +173,28 @@
     </div>
   </div>
 <% } %>
+
+<script>
+function exportPDF(titulo) {
+  const old = document.title;
+  document.title = titulo + ' · ' + '<%= desde %>' + ' al ' + '<%= hasta %>';
+  window.print();
+  document.title = old;
+}
+
+// Animate stat numbers
+document.querySelectorAll('.st-val').forEach(el => {
+  const raw = el.textContent.trim().replace(/\./g,'').replace(/,/g,'');
+  const num = parseFloat(raw);
+  if (!isNaN(num) && num > 0 && !raw.includes('.')) {
+    const startTime = Date.now();
+    const step = () => {
+      const p = Math.min((Date.now()-startTime)/700,1);
+      const e = 1-Math.pow(1-p,3);
+      el.textContent = Math.round(num*e).toLocaleString('es-CO');
+      if(p<1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
+});
+</script>

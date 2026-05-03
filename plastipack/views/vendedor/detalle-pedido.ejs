@@ -4,6 +4,12 @@
     completado:'badge-completado', entregado:'badge-entregado'
   }[e] || 'badge-espera');
   const isEditor = user.rol === 'jefe' || user.rol === 'admin';
+  const estadoLabels = {
+    en_espera: 'En espera',
+    en_produccion: 'En producción',
+    completado: 'Completado',
+    entregado: 'Entregado'
+  };
 %>
 
 <div class="card">
@@ -14,47 +20,62 @@
         <%= pedido.cliente.nombre %>
         &nbsp;·&nbsp; <%= pedido.destino %>
         &nbsp;·&nbsp; Entrega: <%= new Date(pedido.fechaEntrega).toLocaleDateString('es-CO') %>
+        <% if (pedido.vendedor) { %>&nbsp;·&nbsp; Vendedor: <%= pedido.vendedor.nombre.split(' ')[0] %><% } %>
       </p>
     </div>
     <span class="badge <%= eb(pedido.estadoGeneral) %>">
-      <%= pedido.estadoGeneral.replace('_',' ') %>
+      <%= (estadoLabels[pedido.estadoGeneral] || pedido.estadoGeneral).replace('_',' ') %>
     </span>
   </div>
 
   <div class="table-wrap">
     <table>
       <thead><tr>
-        <th>SKU</th><th>Nombre</th>
+        <th>SKU</th>
+        <th>Nombre</th>
         <th class="td-right">Cantidad</th>
         <th class="td-right">Producido</th>
         <th class="td-right">Valor/ud</th>
         <th>Estado</th>
-        <% if(isEditor){ %><th>Cambiar</th><% } %>
+        <% if(isEditor){ %><th style="min-width:200px;">Cambiar estado</th><% } %>
       </tr></thead>
       <tbody>
         <% pedido.items.forEach(it => { %>
           <tr>
             <td><span class="sku-tag"><%= it.referencia.sku %></span></td>
-            <td style="max-width:240px;"><%= it.referencia.nombre %></td>
+            <td style="max-width:200px;"><%= it.referencia.nombre %></td>
             <td class="td-right td-mono"><%= it.cantidad.toLocaleString('es-CO') %></td>
-            <td class="td-right td-mono"><%= (it.producido||0).toLocaleString('es-CO') %></td>
+            <td class="td-right td-mono">
+              <% const pct = it.cantidad > 0 ? Math.min(100, Math.round((it.producido||0)/it.cantidad*100)) : 0; %>
+              <%= (it.producido||0).toLocaleString('es-CO') %>
+              <div class="progress-bar" style="width:80px;display:inline-block;vertical-align:middle;margin-left:6px;">
+                <div class="progress-bar-fill" style="width:<%= pct %>%;"></div>
+              </div>
+            </td>
             <td class="td-right td-mono">$<%= it.valorUnitario.toLocaleString('es-CO') %></td>
-            <td><span class="badge <%= eb(it.estado) %>"><%= it.estado.replace('_',' ') %></span></td>
+            <td>
+              <span class="badge <%= eb(it.estado) %>">
+                <%= (estadoLabels[it.estado] || it.estado).replace('_',' ') %>
+              </span>
+            </td>
             <% if(isEditor){ %>
               <td>
-                <form method="POST"
-                      action="/pedidos/<%= pedido._id %>/items/<%= it._id %>/estado"
-                      style="display:flex;gap:6px;align-items:center;">
-                  <select name="estado"
-                          style="padding:6px 28px 6px 8px;background:rgba(0,0,0,.5);color:var(--ink);border:1px solid var(--edge);border-radius:var(--r-sm);font-size:.80rem;outline:none;">
-                    <% ['en_espera','en_produccion','completado','entregado'].forEach(s=>{ %>
-                      <option value="<%= s %>" <%= it.estado===s?'selected':'' %>>
-                        <%= s.replace('_',' ') %>
-                      </option>
-                    <% }) %>
-                  </select>
-                  <button class="btn btn-sm">OK</button>
-                </form>
+                <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                  <% ['en_espera','en_produccion','completado','entregado'].forEach(s => { %>
+                    <% if (s !== it.estado) { %>
+                      <form method="POST"
+                            action="/pedidos/<%= pedido._id %>/items/<%= it._id %>/estado"
+                            style="display:inline;">
+                        <input type="hidden" name="estado" value="<%= s %>" />
+                        <button type="submit"
+                                class="btn btn-xs <%= s === 'entregado' ? 'btn-primary' : '' %>"
+                                style="padding:4px 8px;font-size:0.65rem;">
+                          <%= (estadoLabels[s]||s).replace('_',' ') %>
+                        </button>
+                      </form>
+                    <% } %>
+                  <% }) %>
+                </div>
               </td>
             <% } %>
           </tr>

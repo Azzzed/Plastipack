@@ -1,10 +1,83 @@
 const ProductionLog = require('../models/ProductionLog');
 const Order = require('../models/Order');
 const User = require('../models/User');
+const Reference = require('../models/Reference');
+
+/**
+ * Dashboard stats for jefe/admin home screen.
+ */
+exports.dashboard = async (req, res, next) => {
+  try {
+    const [
+      totalReferencias,
+      totalOperarios,
+      ordenesActivas,
+      produccionHoy,
+    ] = await Promise.all([
+      Reference.countDocuments({ activo: true }),
+      User.countDocuments({ rol: 'operario' }),
+      Order.find({ estadoGeneral: { $ne: 'entregado' } })
+        .populate('vendedor', 'nombre')
+        .populate('items.referencia', 'sku nombre')
+        .sort('fechaEntrega')
+        .limit(5)
+        .lean({ virtuals: true }),
+      (() => {
+        const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+        return ProductionLog.aggregate([
+          { $match: { horaInicio: { $gte: hoy } } },
+          { $group: { _id: null, producido: { $sum: '$cantidadProducida' }, turnos: { $sum: 1 } } },
+        ]);
+      })(),
+    ]);
+
+    // Ordenes por estado
+    const estadosOrdenes = await Order.aggregate([
+      { $group: { _id: '$estadoGeneral', count: { $sum: 1 } } },
+    ]);
+    const estatMap = Object.fromEntries(estadosOrdenes.map(e => [e._id, e.count]));
+
+    // Producción últimos 7 días por día
+    const hace7 = new Date(); hace7.setDate(hace7.getDate() - 6); hace7.setHours(0,0,0,0);
+    const prodSemanal = await ProductionLog.aggregate([
+      { $match: { horaInicio: { $gte: hace7 } } },
+      {
+        $group: {
+          _id: { $dateToString: { format: '%Y-%m-%d', date: '$horaInicio' } },
+          producido: { $sum: '$cantidadProducida' },
+        },
+      },
+      { $sort: { _id: 1 } },
+    ]);
+
+    // Usuarios pendientes de rol
+    const pendientes = await User.countDocuments({ rol: 'pendiente' });
+
+    const prodHoyData = produccionHoy[0] || { producido: 0, turnos: 0 };
+
+    res.render('dashboard', {
+      titulo: 'Panel principal',
+      stats: {
+        referencias: totalReferencias,
+        operarios: totalOperarios,
+        ordenesActivas: ordenesActivas.length,
+        producidoHoy: prodHoyData.producido,
+        turnosHoy: prodHoyData.turnos,
+        pendientes,
+        enEspera: estatMap['en_espera'] || 0,
+        enProduccion: estatMap['en_produccion'] || 0,
+        completados: estatMap['completado'] || 0,
+      },
+      ordenesRecientes: ordenesActivas,
+      prodSemanal,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
 
 /**
  * Reporte de producción agregado por selladora y por operario.
- * Acepta filtro por rango de fechas (?desde=YYYY-MM-DD&hasta=YYYY-MM-DD).
  */
 exports.reporteProduccion = async (req, res, next) => {
   try {
@@ -85,9 +158,6 @@ exports.reporteProduccion = async (req, res, next) => {
   }
 };
 
-/**
- * Vista del jefe con todas las órdenes activas.
- */
 exports.ordenesActivas = async (req, res, next) => {
   try {
     const ordenes = await Order.find({ estadoGeneral: { $ne: 'entregado' } })
@@ -101,9 +171,6 @@ exports.ordenesActivas = async (req, res, next) => {
   }
 };
 
-/**
- * Panel admin para asignar roles a usuarios "pendiente".
- */
 exports.usuariosPendientes = async (req, res, next) => {
   try {
     const pendientes = await User.find({ rol: 'pendiente' }).sort('-createdAt').lean();

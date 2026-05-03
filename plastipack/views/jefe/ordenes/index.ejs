@@ -5,6 +5,28 @@
   }[e]||'badge-espera');
 %>
 
+<!-- Datos embebidos para el drawer (sin AJAX, sin hash routing) -->
+<script id="ordenes-data" type="application/json">
+  <%- JSON.stringify(ordenes.map(o => ({
+    id: o._id,
+    numero: o.numero,
+    cliente: o.cliente,
+    vendedor: o.vendedor ? o.vendedor.nombre : '—',
+    destino: o.destino,
+    fechaEntrega: o.fechaEntrega,
+    estadoGeneral: o.estadoGeneral,
+    total: o.total || 0,
+    items: o.items.map(it => ({
+      sku: it.referencia ? it.referencia.sku : '—',
+      nombre: it.referencia ? it.referencia.nombre : '—',
+      cantidad: it.cantidad,
+      producido: it.producido || 0,
+      valorUnitario: it.valorUnitario,
+      estado: it.estado
+    }))
+  }))) %>
+</script>
+
 <div class="card">
   <div class="card-header">
     <div>
@@ -26,7 +48,7 @@
           <% ordenes.forEach(o => {
             const dias = Math.ceil((new Date(o.fechaEntrega)-new Date())/(86400000));
           %>
-            <tr>
+            <tr class="clickable" data-orden-id="<%= o._id %>" onclick="abrirDrawer('<%= o._id %>')">
               <td class="td-mono"><strong style="color:var(--ink)"><%= o.numero %></strong></td>
               <td><%= o.cliente.nombre %></td>
               <td class="dim"><%= o.vendedor ? o.vendedor.nombre.split(' ')[0] : '—' %></td>
@@ -38,7 +60,11 @@
                 </span>
               </td>
               <td><span class="badge <%= eb(o.estadoGeneral) %>"><%= o.estadoGeneral.replace('_',' ') %></span></td>
-              <td><a href="/pedidos/<%= o._id %>" class="btn btn-ghost btn-sm">Gestionar →</a></td>
+              <td>
+                <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); abrirDrawer('<%= o._id %>')">
+                  Ver →
+                </button>
+              </td>
             </tr>
           <% }) %>
         </tbody>
@@ -46,3 +72,131 @@
     </div>
   <% } %>
 </div>
+
+<!-- ── DRAWER (cerrado por defecto, sin clase 'open') ── -->
+<div class="drawer-overlay" id="drawer-overlay" onclick="cerrarDrawer()"></div>
+<div class="drawer" id="orden-drawer">
+  <div class="drawer-header">
+    <div>
+      <div class="modal-title" id="drawer-numero">—</div>
+      <div class="sub" id="drawer-estado-badge"></div>
+    </div>
+    <button class="modal-close" id="btn-cerrar-drawer" onclick="cerrarDrawer()" type="button">×</button>
+  </div>
+
+  <div class="drawer-body">
+    <!-- Info cliente -->
+    <div class="card" style="margin-bottom:12px;">
+      <h3>Información del cliente</h3>
+      <div class="info-grid" style="margin-top:10px;">
+        <div class="info-row">
+          <span class="info-label">Cliente</span>
+          <span class="info-value" id="drawer-cliente">—</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Contacto</span>
+          <span class="info-value" id="drawer-contacto">—</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Vendedor</span>
+          <span class="info-value" id="drawer-vendedor">—</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Destino</span>
+          <span class="info-value" id="drawer-destino">—</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Entrega</span>
+          <span class="info-value" id="drawer-entrega">—</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Total</span>
+          <span class="info-value" id="drawer-total">—</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Referencias -->
+    <div class="card">
+      <h3>Referencias del pedido</h3>
+      <div id="drawer-refs" style="margin-top:10px;"></div>
+    </div>
+  </div>
+
+  <div class="drawer-footer">
+    <button class="btn btn-ghost" onclick="cerrarDrawer()" type="button">Cerrar</button>
+    <a id="btn-gestionar" href="#" class="btn btn-primary">Gestionar pedido →</a>
+  </div>
+</div>
+
+<script>
+(function () {
+  // Carga datos embebidos — NO depende del hash de la URL
+  const ORDENES = JSON.parse(document.getElementById('ordenes-data').textContent);
+  const mapaOrdenes = {};
+  ORDENES.forEach(o => { mapaOrdenes[o.id] = o; });
+
+  const BADGE = {
+    en_espera: 'badge-espera', en_produccion: 'badge-produccion',
+    parcial: 'badge-parcial', completado: 'badge-completado', entregado: 'badge-entregado'
+  };
+
+  window.abrirDrawer = function (id) {
+    const o = mapaOrdenes[id];
+    if (!o) return;
+
+    // Poblar campos
+    document.getElementById('drawer-numero').textContent = o.numero;
+    document.getElementById('drawer-cliente').textContent = o.cliente.nombre || '—';
+    document.getElementById('drawer-contacto').textContent = o.cliente.contacto || '—';
+    document.getElementById('drawer-vendedor').textContent = o.vendedor || '—';
+    document.getElementById('drawer-destino').textContent = o.destino || '—';
+    document.getElementById('drawer-entrega').textContent =
+      new Date(o.fechaEntrega).toLocaleDateString('es-CO');
+    document.getElementById('drawer-total').textContent =
+      '$' + (o.total || 0).toLocaleString('es-CO');
+
+    const estadoEl = document.getElementById('drawer-estado-badge');
+    const cls = BADGE[o.estadoGeneral] || 'badge-espera';
+    estadoEl.innerHTML = `<span class="badge ${cls}">${o.estadoGeneral.replace('_', ' ')}</span>`;
+
+    // Referencias
+    const refsEl = document.getElementById('drawer-refs');
+    if (!o.items.length) {
+      refsEl.innerHTML = '<p class="muted">Sin referencias.</p>';
+    } else {
+      refsEl.innerHTML = o.items.map(it => `
+        <div class="inset" style="margin-bottom:6px;">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;">
+            <span class="sku-tag">${it.sku}</span>
+            <span class="badge ${BADGE[it.estado] || 'badge-espera'}" style="font-size:.65rem;">
+              ${it.estado.replace('_', ' ')}
+            </span>
+          </div>
+          <div style="font-size:.82rem;color:var(--ink-2);margin-bottom:4px;">${it.nombre}</div>
+          <div class="dim">
+            ${(it.producido).toLocaleString('es-CO')} / ${it.cantidad.toLocaleString('es-CO')} ud
+            &nbsp;·&nbsp; $${it.valorUnitario.toLocaleString('es-CO')}/ud
+          </div>
+        </div>
+      `).join('');
+    }
+
+    document.getElementById('btn-gestionar').href = '/pedidos/' + o.id;
+
+    // Abrir (añadir clase open, nunca en carga)
+    document.getElementById('orden-drawer').classList.add('open');
+    document.getElementById('drawer-overlay').classList.add('open');
+  };
+
+  window.cerrarDrawer = function () {
+    document.getElementById('orden-drawer').classList.remove('open');
+    document.getElementById('drawer-overlay').classList.remove('open');
+  };
+
+  // Cerrar con Escape
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') cerrarDrawer();
+  });
+})();
+</script>

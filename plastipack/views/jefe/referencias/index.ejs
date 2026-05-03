@@ -1,222 +1,288 @@
-<%- include('../../partials/topbar', { user }) %>
-<div class="shell">
-  <%- include('../../partials/flash') %>
-
-  <!-- ── HEADER ─────────────────────────────────────────────────── -->
-  <div class="card">
-    <div class="flex-between">
-      <div>
-        <h1>Referencias</h1>
-        <p class="sub"><%= referencias.length %> producto<%= referencias.length !== 1 ? 's' : '' %> registrado<%= referencias.length !== 1 ? 's' : '' %></p>
-      </div>
-      <div class="flex gap-8 no-print">
-        <button class="btn btn-sm btn-ghost" onclick="exportPDF('Referencias Plastipack')">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          PDF
-        </button>
-        <a href="/jefe/referencias/nueva" class="btn btn-primary btn-sm">+ Nueva</a>
-      </div>
+<div class="card">
+  <div class="flex-between">
+    <div>
+      <h1>Referencias</h1>
+      <p class="sub"><%= referencias.length %> producto<%= referencias.length !== 1 ? 's' : '' %> registrado<%= referencias.length !== 1 ? 's' : '' %></p>
     </div>
-
-    <!-- Search + view toggle -->
-    <div class="flex gap-8 no-print" style="flex-wrap:wrap;">
-      <div class="search-bar" style="flex:1;min-width:180px;">
-        <div class="field mb-0">
-          <input type="text" id="ref-search" placeholder="Buscar por SKU, nombre, material…" oninput="filterCards(this,'#refs-cards');filterTable(this,'#refs-table')">
-        </div>
-      </div>
-      <div class="view-toggle" data-view-scope>
-        <button class="view-toggle-btn active" data-view="cards">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-          Tarjetas
-        </button>
-        <button class="view-toggle-btn" data-view="table">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-          Tabla
-        </button>
-      </div>
-    </div>
-
-    <!-- Filter chips -->
-    <div class="filter-bar no-print" style="margin-top:10px;margin-bottom:0;">
-      <span class="dim" style="font-size:0.72rem;letter-spacing:.5px;text-transform:uppercase;">Tipo:</span>
-      <button class="filter-chip active" data-filter="all" data-group="tipo" data-target="refs">Todos</button>
-      <button class="filter-chip" data-filter="bolsa"  data-group="tipo" data-target="refs">Bolsa</button>
-      <button class="filter-chip" data-filter="rollo"  data-group="tipo" data-target="refs">Rollo</button>
-      <button class="filter-chip" data-filter="lamina" data-group="tipo" data-target="refs">Lámina</button>
-      <div class="filter-sep"></div>
-      <span class="dim" style="font-size:0.72rem;letter-spacing:.5px;text-transform:uppercase;">Destino:</span>
-      <button class="filter-chip active" data-filter="all" data-group="destino" data-target="refs">Todos</button>
-      <button class="filter-chip" data-filter="externo" data-group="destino" data-target="refs">Externo</button>
-      <button class="filter-chip" data-filter="interno" data-group="destino" data-target="refs">Interno</button>
+    <div class="flex gap-8">
+      <a href="/referencias/nueva" class="btn btn-primary btn-sm">+ Nueva</a>
     </div>
   </div>
 
-  <!-- ══════════════════════════════════════════════════════════════
-       CARD VIEW (default)
-  ══════════════════════════════════════════════════════════════ -->
-  <div id="refs-cards" data-view-panel="cards">
-    <% if (!referencias.length) { %>
-      <div class="card"><div class="empty-state"><div class="empty-icon">🔖</div><p>Sin referencias. <a href="/jefe/referencias/nueva" style="color:var(--ink-2);">Crear primera</a></p></div></div>
-    <% } else { %>
-    <div class="product-grid stagger">
-      <% referencias.forEach(r => { %>
-      <div class="product-card"
-        data-filter-item
-        data-group="tipo"
-        data-filter-val="<%= r.tipo %>"
-        data-destino="<%= r.destino %>">
-
-        <span class="pc-sku"><%= r.sku %></span>
-        <div class="pc-name"><%= r.nombre %></div>
-
-        <div class="pc-meta">
-          <span class="badge" style="font-size:0.65rem;"><%= r.tipo %></span>
-          <span class="badge badge-<%= r.destino === 'externo' ? 'produccion' : 'espera' %>" style="font-size:0.65rem;"><%= r.destino %></span>
-          <% if (r.impresion?.lleva) { %>
-          <span class="badge badge-completado" style="font-size:0.65rem;"><%= r.impresion.colores %>c</span>
-          <% } %>
-        </div>
-
-        <!-- Expandable detail -->
-        <div class="pc-detail">
-          <div class="info-grid" style="margin-bottom:10px;">
-            <div class="info-row">
-              <span class="info-label">Ancho</span>
-              <span class="info-value"><%= r.dimensiones?.ancho_cm || '—' %> cm</span>
-            </div>
-            <div class="info-row">
-              <span class="info-label">Alto / Largo</span>
-              <span class="info-value"><%= r.dimensiones?.alto_cm || r.dimensiones?.largo_m || '—' %> <%= r.dimensiones?.alto_cm ? 'cm' : 'm' %></span>
-            </div>
-            <div class="info-row">
-              <span class="info-label">Calibre</span>
-              <span class="info-value"><%= r.dimensiones?.calibre_mic || '—' %> µm</span>
-            </div>
-            <div class="info-row">
-              <span class="info-label">Material</span>
-              <span class="info-value"><%= r.materiaPrima || '—' %></span>
-            </div>
-          </div>
-          <div style="font-size:0.74rem;color:var(--ink-4);margin-bottom:10px;">
-            <% const procs = []; if(r.procesos?.extrusion) procs.push('Extrusión'); if(r.procesos?.impresionRefilado) procs.push('Impresión'); if(r.procesos?.sellado) procs.push('Sellado'); %>
-            Procesos: <%= procs.join(' → ') || '—' %>
-          </div>
-          <% if (r.impresion?.lleva && r.impresion.logo) { %>
-          <div style="font-size:0.74rem;color:var(--ink-4);margin-bottom:10px;">Logo: <%= r.impresion.logo %></div>
-          <% } %>
-          <div class="flex gap-6">
-            <a href="/jefe/referencias/<%= r._id %>/editar" class="btn btn-xs">Editar</a>
-          </div>
-        </div>
-        <button class="pc-expand-btn" aria-label="Ver detalles">+</button>
+  <!-- Búsqueda + toggle de vista -->
+  <div class="flex gap-8" style="flex-wrap:wrap;margin-top:14px;">
+    <div style="flex:1;min-width:180px;">
+      <div class="field mb-0">
+        <input type="text" id="ref-search" placeholder="Buscar por SKU, nombre, material…"
+               oninput="filterRefs(this.value)" />
       </div>
+    </div>
+    <div class="view-toggle">
+      <button class="view-toggle-btn active" id="btn-cards" onclick="setView('cards')">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        Tarjetas
+      </button>
+      <button class="view-toggle-btn" id="btn-table" onclick="setView('table')">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+        Tabla
+      </button>
+    </div>
+  </div>
+
+  <!-- Filtros por tipo y destino -->
+  <div class="filter-bar" style="margin-top:10px;margin-bottom:0;">
+    <span class="dim" style="font-size:0.72rem;letter-spacing:.5px;text-transform:uppercase;">Tipo:</span>
+    <button class="filter-chip active" data-group="tipo" data-val="all"     onclick="setFilter(this,'tipo')">Todos</button>
+    <button class="filter-chip"        data-group="tipo" data-val="bolsa"   onclick="setFilter(this,'tipo')">Bolsa</button>
+    <button class="filter-chip"        data-group="tipo" data-val="rollo"   onclick="setFilter(this,'tipo')">Rollo</button>
+    <button class="filter-chip"        data-group="tipo" data-val="lamina"  onclick="setFilter(this,'tipo')">Lámina</button>
+    <div class="filter-sep"></div>
+    <span class="dim" style="font-size:0.72rem;letter-spacing:.5px;text-transform:uppercase;">Destino:</span>
+    <button class="filter-chip active" data-group="destino" data-val="all"      onclick="setFilter(this,'destino')">Todos</button>
+    <button class="filter-chip"        data-group="destino" data-val="externo"  onclick="setFilter(this,'destino')">Externo</button>
+    <button class="filter-chip"        data-group="destino" data-val="interno"  onclick="setFilter(this,'destino')">Interno</button>
+  </div>
+</div>
+
+<!-- ══ VISTA TARJETAS ══ -->
+<div id="view-cards">
+  <% if (!referencias.length) { %>
+    <div class="card">
+      <div class="empty-state">
+        <div class="empty-icon">🔖</div>
+        <p>Sin referencias. <a href="/referencias/nueva" style="color:var(--ink-2);">Crear la primera</a></p>
+      </div>
+    </div>
+  <% } else { %>
+    <div class="product-grid" id="cards-grid">
+      <% referencias.forEach(r => { %>
+        <div class="product-card ref-card"
+             data-sku="<%= r.sku.toLowerCase() %>"
+             data-nombre="<%= r.nombre.toLowerCase() %>"
+             data-material="<%= (r.materiaPrima||'').toLowerCase() %>"
+             data-tipo="<%= r.tipo %>"
+             data-destino="<%= r.destino %>">
+
+          <span class="pc-sku"><%= r.sku %></span>
+          <div class="pc-name"><%= r.nombre %></div>
+
+          <div class="pc-meta">
+            <span class="badge" style="font-size:0.65rem;"><%= r.tipo %></span>
+            <span class="badge badge-<%= r.destino === 'externo' ? 'produccion' : 'espera' %>" style="font-size:0.65rem;"><%= r.destino %></span>
+            <% if (r.impresion?.lleva) { %>
+              <span class="badge badge-completado" style="font-size:0.65rem;"><%= r.impresion.colores %>c</span>
+            <% } %>
+          </div>
+
+          <!-- Detalle expandible -->
+          <div class="pc-detail">
+            <div class="info-grid" style="margin-bottom:10px;">
+              <div class="info-row">
+                <span class="info-label">Ancho</span>
+                <span class="info-value"><%= r.dimensiones?.ancho_cm || '—' %> cm</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Alto / Largo</span>
+                <span class="info-value">
+                  <%= r.dimensiones?.alto_cm || r.dimensiones?.largo_m || '—' %>
+                  <%= r.dimensiones?.alto_cm ? 'cm' : 'm' %>
+                </span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Calibre</span>
+                <span class="info-value"><%= r.dimensiones?.calibre_mic || '—' %> µm</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Material</span>
+                <span class="info-value"><%= r.materiaPrima || '—' %></span>
+              </div>
+            </div>
+            <div style="font-size:0.74rem;color:var(--ink-4);margin-bottom:10px;">
+              <%
+                const procs = [];
+                if (r.procesos?.extrusion) procs.push('Extrusión');
+                if (r.procesos?.impresionRefilado) procs.push('Impresión');
+                if (r.procesos?.sellado) procs.push('Sellado');
+              %>
+              Procesos: <%= procs.join(' → ') || '—' %>
+            </div>
+            <% if (r.impresion?.lleva && r.impresion.logo) { %>
+              <div style="font-size:0.74rem;color:var(--ink-4);margin-bottom:10px;">Logo: <%= r.impresion.logo %></div>
+            <% } %>
+          </div>
+          <button class="pc-expand-btn" onclick="toggleCard(this)" aria-label="Ver detalles">+</button>
+        </div>
       <% }) %>
     </div>
-    <% } %>
-  </div>
+  <% } %>
+</div>
 
-  <!-- ══════════════════════════════════════════════════════════════
-       TABLE VIEW
-  ══════════════════════════════════════════════════════════════ -->
-  <div id="refs-table" data-view-panel="table" style="display:none;">
-    <div class="card">
-      <div class="table-wrap">
-        <table>
-          <thead><tr>
+<!-- ══ VISTA TABLA ══ -->
+<div id="view-table" style="display:none;">
+  <div class="card">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
             <th>SKU</th>
             <th>Nombre</th>
             <th>Tipo</th>
-            <th>Dim.</th>
+            <th>Dimensiones</th>
             <th>Material</th>
             <th>Procesos</th>
             <th>Destino</th>
-            <th class="no-print"></th>
-          </tr></thead>
-          <tbody>
-            <% referencias.forEach(r => {
-              const procs = [];
-              if(r.procesos?.extrusion) procs.push('E');
-              if(r.procesos?.impresionRefilado) procs.push('I');
-              if(r.procesos?.sellado) procs.push('S');
-            %>
-            <tr class="clickable">
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="table-body">
+          <% referencias.forEach(r => {
+            const procs = [];
+            if (r.procesos?.extrusion)        procs.push('E');
+            if (r.procesos?.impresionRefilado) procs.push('I');
+            if (r.procesos?.sellado)           procs.push('S');
+          %>
+            <tr class="ref-row"
+                data-sku="<%= r.sku.toLowerCase() %>"
+                data-nombre="<%= r.nombre.toLowerCase() %>"
+                data-material="<%= (r.materiaPrima||'').toLowerCase() %>"
+                data-tipo="<%= r.tipo %>"
+                data-destino="<%= r.destino %>">
               <td class="td-mono"><%= r.sku %></td>
-              <td style="max-width:180px;" class="truncate"><%= r.nombre %></td>
+              <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><%= r.nombre %></td>
               <td><span class="badge badge-espera"><%= r.tipo %></span></td>
-              <td class="dim"><%= r.dimensiones?.ancho_cm || '?' %>×<%= r.dimensiones?.alto_cm || r.dimensiones?.largo_m || '?' %></td>
-              <td class="muted" style="font-size:0.80rem;max-width:120px;" class="truncate"><%= r.materiaPrima %></td>
+              <td class="dim">
+                <%= r.dimensiones?.ancho_cm || '?' %>×<%= r.dimensiones?.alto_cm || r.dimensiones?.largo_m || '?' %>
+              </td>
+              <td class="muted" style="font-size:.80rem;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                <%= r.materiaPrima %>
+              </td>
               <td>
                 <% procs.forEach(p => { %>
-                <span class="badge" style="margin-right:2px;font-size:0.62rem;"><%= p %></span>
+                  <span class="badge" style="margin-right:2px;font-size:.62rem;"><%= p %></span>
                 <% }) %>
               </td>
-              <td><span class="badge badge-<%= r.destino === 'externo' ? 'produccion' : 'espera' %>"><%= r.destino %></span></td>
-              <td class="no-print">
-                <div class="flex gap-6">
-                  <button class="expand-btn" data-target="ref-row-<%= r._id %>" aria-label="Expandir">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-                  </button>
-                  <a href="/jefe/referencias/<%= r._id %>/editar" class="btn btn-xs btn-ghost">✏</a>
-                </div>
+              <td>
+                <span class="badge badge-<%= r.destino === 'externo' ? 'produccion' : 'espera' %>">
+                  <%= r.destino %>
+                </span>
+              </td>
+              <td>
+                <button class="expand-btn" onclick="toggleRow(this, 'row-<%= r._id %>')" aria-label="Expandir">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
               </td>
             </tr>
-            <!-- Expand row -->
-            <tr class="expand-row" id="ref-row-<%= r._id %>">
+            <!-- Fila expandible -->
+            <tr class="expand-row" id="row-<%= r._id %>">
               <td colspan="8">
                 <div class="expand-content">
                   <div class="info-grid" style="margin-bottom:10px;">
-                    <div class="info-row"><span class="info-label">Ancho</span><span class="info-value"><%= r.dimensiones?.ancho_cm %> cm</span></div>
-                    <div class="info-row"><span class="info-label">Alto / Largo</span><span class="info-value"><%= r.dimensiones?.alto_cm || r.dimensiones?.largo_m %> <%= r.dimensiones?.alto_cm ? 'cm' : 'm' %></span></div>
-                    <div class="info-row"><span class="info-label">Calibre</span><span class="info-value"><%= r.dimensiones?.calibre_mic %> µm</span></div>
-                    <div class="info-row"><span class="info-label">Impresión</span><span class="info-value"><%= r.impresion?.lleva ? r.impresion.colores + ' colores' : 'Sin impresión' %></span></div>
+                    <div class="info-row">
+                      <span class="info-label">Ancho</span>
+                      <span class="info-value"><%= r.dimensiones?.ancho_cm || '—' %> cm</span>
+                    </div>
+                    <div class="info-row">
+                      <span class="info-label">Alto / Largo</span>
+                      <span class="info-value">
+                        <%= r.dimensiones?.alto_cm || r.dimensiones?.largo_m || '—' %>
+                        <%= r.dimensiones?.alto_cm ? 'cm' : 'm' %>
+                      </span>
+                    </div>
+                    <div class="info-row">
+                      <span class="info-label">Calibre</span>
+                      <span class="info-value"><%= r.dimensiones?.calibre_mic || '—' %> µm</span>
+                    </div>
+                    <div class="info-row">
+                      <span class="info-label">Impresión</span>
+                      <span class="info-value">
+                        <%= r.impresion?.lleva ? r.impresion.colores + ' colores' : 'Sin impresión' %>
+                      </span>
+                    </div>
                     <% if (r.impresion?.lleva && r.impresion.logo) { %>
-                    <div class="info-row" style="grid-column:1/-1;"><span class="info-label">Logo</span><span class="info-value"><%= r.impresion.logo %></span></div>
+                      <div class="info-row" style="grid-column:1/-1;">
+                        <span class="info-label">Logo</span>
+                        <span class="info-value"><%= r.impresion.logo %></span>
+                      </div>
                     <% } %>
-                  </div>
-                  <div style="display:flex;gap:8px;margin-top:4px;">
-                    <a href="/jefe/referencias/<%= r._id %>/editar" class="btn btn-xs">Editar referencia</a>
                   </div>
                 </div>
               </td>
             </tr>
-            <% }) %>
-            <% if (!referencias.length) { %>
-            <tr><td colspan="8"><div class="empty-state"><div class="empty-icon">🔖</div><p>Sin referencias</p></div></td></tr>
-            <% } %>
-          </tbody>
-        </table>
-      </div>
+          <% }) %>
+          <% if (!referencias.length) { %>
+            <tr><td colspan="8"><div class="empty-state"><p>Sin referencias</p></div></td></tr>
+          <% } %>
+        </tbody>
+      </table>
     </div>
   </div>
-
 </div>
 
 <script>
-// Sync both views when filter chip clicked (tipo)
-document.querySelectorAll('.filter-chip[data-group="tipo"]').forEach(chip => {
-  chip.addEventListener('click', () => {
-    const val = chip.dataset.filter;
-    // cards
-    document.querySelectorAll('#refs-cards .product-card').forEach(c => {
-      c.style.display = (val === 'all' || c.dataset.filterVal === val) ? '' : 'none';
+(function () {
+  // ── Estado de filtros ──────────────────────────────────────────
+  const filtros = { tipo: 'all', destino: 'all', q: '' };
+
+  function applyFilters() {
+    const { tipo, destino, q } = filtros;
+
+    // Tarjetas
+    document.querySelectorAll('.ref-card').forEach(c => {
+      const match =
+        (tipo    === 'all' || c.dataset.tipo    === tipo)    &&
+        (destino === 'all' || c.dataset.destino === destino) &&
+        (q === '' || c.dataset.sku.includes(q) || c.dataset.nombre.includes(q) || c.dataset.material.includes(q));
+      c.style.display = match ? '' : 'none';
     });
-    // table rows (skip expand-rows)
-    document.querySelectorAll('#refs-table tbody tr:not(.expand-row)').forEach(row => {
-      const badge = row.querySelector('td:nth-child(3) .badge');
-      const rowTipo = badge ? badge.textContent.trim() : '';
-      row.style.display = (val === 'all' || rowTipo === val) ? '' : 'none';
+
+    // Filas de tabla (omitir expand-rows)
+    document.querySelectorAll('.ref-row').forEach(r => {
+      const match =
+        (tipo    === 'all' || r.dataset.tipo    === tipo)    &&
+        (destino === 'all' || r.dataset.destino === destino) &&
+        (q === '' || r.dataset.sku.includes(q) || r.dataset.nombre.includes(q) || r.dataset.material.includes(q));
+      r.style.display = match ? '' : 'none';
+      // Ocultar la expand-row correspondiente si la fila está oculta
+      const expandId = r.querySelector('button[onclick]')?.getAttribute('onclick')?.match(/'([^']+)'/)?.[1];
+      if (expandId) {
+        const expRow = document.getElementById(expandId);
+        if (expRow && !match) expRow.classList.remove('open');
+      }
     });
-  });
-});
-// destino filter
-document.querySelectorAll('.filter-chip[data-group="destino"]').forEach(chip => {
-  chip.addEventListener('click', () => {
-    const val = chip.dataset.filter;
-    document.querySelectorAll('#refs-cards .product-card').forEach(c => {
-      if (val !== 'all') c.style.display = c.dataset.destino === val ? '' : 'none';
-      else c.style.display = '';
-    });
-  });
-});
+  }
+
+  // ── API pública ────────────────────────────────────────────────
+  window.filterRefs = function (val) {
+    filtros.q = val.toLowerCase().trim();
+    applyFilters();
+  };
+
+  window.setFilter = function (btn, group) {
+    // Toggle active chip
+    document.querySelectorAll(`.filter-chip[data-group="${group}"]`).forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    filtros[group] = btn.dataset.val;
+    applyFilters();
+  };
+
+  window.setView = function (view) {
+    document.getElementById('view-cards').style.display = view === 'cards' ? '' : 'none';
+    document.getElementById('view-table').style.display = view === 'table' ? '' : 'none';
+    document.getElementById('btn-cards').classList.toggle('active', view === 'cards');
+    document.getElementById('btn-table').classList.toggle('active', view === 'table');
+  };
+
+  window.toggleCard = function (btn) {
+    const card = btn.closest('.product-card');
+    const open = card.classList.toggle('expanded');
+    btn.textContent = open ? '−' : '+';
+  };
+
+  window.toggleRow = function (btn, id) {
+    const row = document.getElementById(id);
+    if (!row) return;
+    const open = row.classList.toggle('open');
+    btn.classList.toggle('open', open);
+  };
+})();
 </script>

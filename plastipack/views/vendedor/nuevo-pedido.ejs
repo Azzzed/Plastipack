@@ -1,124 +1,749 @@
-<div class="card">
-  <div class="card-header">
-    <div>
-      <h1>Nuevo pedido</h1>
-      <p class="sub">El pedido pasa automáticamente a producción al crearse.</p>
+<style>
+/* ─── POS Layout ─────────────────────────────────────────────── */
+.pos-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  align-items: start;
+}
+@media (min-width: 900px) {
+  .pos-layout {
+    grid-template-columns: 1fr 360px;
+  }
+}
+
+/* ─── Cart sidebar ───────────────────────────────────────────── */
+.cart-panel {
+  position: sticky;
+  top: 80px;
+}
+.cart-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.cart-items {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 80px;
+  margin-bottom: 12px;
+}
+.cart-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 0;
+  color: var(--ink-4);
+  font-size: 0.82rem;
+  gap: 8px;
+}
+.cart-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  background: rgba(0,0,0,0.35);
+  border: 1px solid var(--edge-dim);
+  border-radius: var(--r);
+  animation: slideUp 0.2s ease both;
+  transition: border-color 0.15s;
+}
+.cart-item:hover { border-color: var(--edge); }
+.cart-item-info { flex: 1; min-width: 0; }
+.cart-item-sku {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--ink-3);
+  background: var(--ink-5);
+  border: 1px solid var(--edge-dim);
+  border-radius: 4px;
+  padding: 1px 5px;
+  display: inline-block;
+  margin-bottom: 3px;
+}
+.cart-item-name {
+  font-size: 0.80rem;
+  color: var(--ink-2);
+  font-weight: 500;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cart-item-inputs {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+  align-items: center;
+}
+.cart-item-inputs input {
+  width: 80px;
+  padding: 5px 8px;
+  background: rgba(0,0,0,0.45);
+  border: 1px solid var(--edge-dim);
+  border-radius: var(--r-xs);
+  color: var(--ink);
+  font-size: 0.78rem;
+  font-family: var(--font-mono);
+  outline: none;
+  transition: border-color 0.15s;
+}
+.cart-item-inputs input:focus { border-color: var(--edge); }
+.cart-item-inputs .inp-label {
+  font-size: 0.60rem;
+  color: var(--ink-4);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+.cart-item-subtotal {
+  font-size: 0.78rem;
+  font-family: var(--font-mono);
+  color: var(--ink-2);
+  text-align: right;
+  white-space: nowrap;
+  min-width: 70px;
+}
+.cart-remove {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid var(--edge-dim);
+  background: transparent;
+  color: var(--ink-4);
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+.cart-remove:hover { border-color: var(--edge); color: var(--ink-2); background: rgba(255,255,255,0.05); }
+.cart-total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-top: 1px solid var(--edge-dim);
+}
+.cart-total-label { font-size: 0.78rem; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.5px; }
+.cart-total-val { font-size: 1.25rem; font-weight: 800; letter-spacing: -0.5px; color: var(--ink); }
+.cart-count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.15);
+  border: 1px solid var(--edge);
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--ink);
+  padding: 0 5px;
+}
+
+/* ─── Reference search & grid ─────────────────────────────────── */
+.ref-search-wrap {
+  position: relative;
+  margin-bottom: 14px;
+}
+.ref-search-wrap input {
+  padding-left: 36px !important;
+}
+.ref-search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--ink-4);
+  pointer-events: none;
+}
+.refs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 8px;
+  max-height: 420px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.refs-grid::-webkit-scrollbar { width: 4px; }
+.refs-grid::-webkit-scrollbar-thumb { background: var(--edge); border-radius: 99px; }
+
+.ref-card {
+  position: relative;
+  padding: 12px;
+  background: rgba(0,0,0,0.40);
+  border: 1.5px solid var(--edge-dim);
+  border-radius: var(--r);
+  cursor: pointer;
+  transition: all 0.15s;
+  overflow: hidden;
+  user-select: none;
+}
+.ref-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--edge-dim), transparent);
+}
+.ref-card:hover {
+  border-color: var(--edge);
+  background: rgba(255,255,255,0.04);
+  transform: translateY(-1px);
+}
+.ref-card.in-cart {
+  border-color: rgba(255,255,255,0.28);
+  background: rgba(255,255,255,0.06);
+}
+.ref-card.in-cart::after {
+  content: '✓';
+  position: absolute;
+  top: 8px; right: 8px;
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.9);
+  color: #000;
+  font-size: 0.65rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ref-card .rc-sku {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--ink-3);
+  background: var(--ink-5);
+  border: 1px solid var(--edge-dim);
+  border-radius: 4px;
+  padding: 1px 5px;
+  display: inline-block;
+  margin-bottom: 5px;
+}
+.ref-card .rc-name {
+  font-size: 0.80rem;
+  font-weight: 600;
+  color: var(--ink-2);
+  line-height: 1.3;
+  margin-bottom: 6px;
+}
+.ref-card .rc-meta {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+/* ─── Steps header ───────────────────────────────────────────── */
+.pos-steps {
+  display: flex;
+  gap: 0;
+  margin-bottom: 16px;
+  background: rgba(0,0,0,0.3);
+  border: 1px solid var(--edge-dim);
+  border-radius: var(--r-pill);
+  padding: 3px;
+  overflow: hidden;
+}
+.pos-step {
+  flex: 1;
+  text-align: center;
+  padding: 7px 10px;
+  border-radius: var(--r-pill);
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--ink-4);
+  transition: all 0.2s;
+  letter-spacing: 0.3px;
+  cursor: default;
+}
+.pos-step.active {
+  background: rgba(255,255,255,0.10);
+  color: var(--ink);
+  border: 1px solid var(--edge);
+}
+.pos-step.done {
+  color: var(--ink-2);
+}
+</style>
+
+<!-- Hidden form que se submittirá programáticamente -->
+<form action="/pedidos" method="POST" id="fp" style="display:none;">
+  <div id="hidden-items-container"></div>
+</form>
+
+<div class="pos-layout">
+
+  <!-- ══════════════════════════════════════════════════════════
+       IZQUIERDA: Datos del pedido + catálogo
+  ══════════════════════════════════════════════════════════ -->
+  <div>
+
+    <!-- Pasos -->
+    <div class="pos-steps">
+      <div class="pos-step active" id="step-1">① Cliente</div>
+      <div class="pos-step" id="step-2">② Referencias</div>
+      <div class="pos-step" id="step-3">③ Confirmar</div>
     </div>
+
+    <!-- Panel 1: Datos del cliente -->
+    <div id="panel-1" class="card">
+      <div class="card-header">
+        <div>
+          <h2 style="font-size:1.1rem;">Datos del cliente</h2>
+          <p class="sub">Información del pedido</p>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="field">
+          <label>Cliente / Razón social <span style="color:rgba(255,100,100,0.8)">*</span></label>
+          <input id="clienteNombre" name="clienteNombre" required placeholder="Nombre o empresa" />
+        </div>
+        <div class="field">
+          <label>Contacto</label>
+          <input id="clienteContacto" name="clienteContacto" placeholder="Teléfono o correo" />
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="field">
+          <label>Destino</label>
+          <select id="destino" name="destino" required>
+            <option value="externo">Cliente externo</option>
+            <option value="interno">Consumo interno</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Fecha de entrega <span class="dim">(mín. 15 días)</span></label>
+          <input type="date" id="fechaEntrega" name="fechaEntrega"
+                 min="<%= fechaMinima %>" value="<%= fechaMinima %>" required />
+        </div>
+      </div>
+      <div class="field mb-0">
+        <label>Notas <span class="dim">(opcional)</span></label>
+        <textarea id="notas" name="notas" placeholder="Instrucciones especiales, color, empaque..." style="min-height:60px;"></textarea>
+      </div>
+      <div style="margin-top:14px;">
+        <button type="button" class="btn btn-primary" onclick="goToStep2()">
+          Siguiente — Agregar referencias →
+        </button>
+      </div>
+    </div>
+
+    <!-- Panel 2: Catálogo -->
+    <div id="panel-2" class="card" style="display:none;">
+      <div class="card-header">
+        <div>
+          <h2 style="font-size:1.1rem;">Catálogo de referencias</h2>
+          <p class="sub">Haz clic para agregar al pedido</p>
+        </div>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="goToStep1()">← Volver</button>
+      </div>
+
+      <div class="ref-search-wrap field mb-0">
+        <svg class="ref-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" id="ref-busqueda" placeholder="Buscar por SKU o nombre…" autocomplete="off" oninput="buscarRefs(this.value)" />
+      </div>
+
+      <div style="margin:12px 0 8px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+        <button class="filter-chip active" data-tipo="all" onclick="filtrarTipo(this)">Todos</button>
+        <button class="filter-chip" data-tipo="bolsa" onclick="filtrarTipo(this)">Bolsas</button>
+        <button class="filter-chip" data-tipo="rollo" onclick="filtrarTipo(this)">Rollos</button>
+        <button class="filter-chip" data-tipo="lamina" onclick="filtrarTipo(this)">Láminas</button>
+      </div>
+
+      <div class="refs-grid" id="refs-grid">
+        <% referencias.forEach(r => { %>
+          <div class="ref-card"
+               data-id="<%= r._id %>"
+               data-sku="<%= r.sku %>"
+               data-nombre="<%= r.nombre %>"
+               data-tipo="<%= r.tipo %>"
+               onclick="toggleRef(this)">
+            <span class="rc-sku"><%= r.sku %></span>
+            <div class="rc-name"><%= r.nombre %></div>
+            <div class="rc-meta">
+              <span class="badge" style="font-size:0.60rem;"><%= r.tipo %></span>
+              <% if(r.destino){ %><span class="badge badge-<%= r.destino==='externo'?'produccion':'espera' %>" style="font-size:0.60rem;"><%= r.destino %></span><% } %>
+            </div>
+          </div>
+        <% }) %>
+        <% if (!referencias.length) { %>
+          <div style="grid-column:1/-1;text-align:center;padding:30px 0;color:var(--ink-4);">
+            No hay referencias disponibles. <a href="/referencias/nueva" style="color:var(--ink-2);">Crear primera</a>
+          </div>
+        <% } %>
+      </div>
+
+      <div style="margin-top:14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <button type="button" class="btn btn-primary" id="btn-confirmar" onclick="confirmarPedido()" disabled>
+          Confirmar pedido →
+        </button>
+        <span class="dim" id="cart-hint-left">Agrega al menos una referencia</span>
+      </div>
+    </div>
+
   </div>
 
-  <form action="/pedidos" method="POST" id="fp">
-    <div class="grid-2">
-      <div class="field">
-        <label>Cliente</label>
-        <input name="clienteNombre" required placeholder="Nombre o razón social" />
+  <!-- ══════════════════════════════════════════════════════════
+       DERECHA: Carrito (siempre visible en desktop)
+  ══════════════════════════════════════════════════════════ -->
+  <div class="cart-panel">
+    <div class="card" style="position:sticky;top:80px;">
+
+      <div class="cart-header">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <h2 style="font-size:1rem;margin:0;">Pedido</h2>
+          <span class="cart-count-badge" id="cart-count">0</span>
+        </div>
+        <button type="button" class="btn btn-ghost btn-xs" onclick="clearCart()" id="btn-clear" style="display:none;">
+          Vaciar
+        </button>
       </div>
-      <div class="field">
-        <label>Contacto</label>
-        <input name="clienteContacto" placeholder="Teléfono o correo" />
+
+      <!-- Items del carrito -->
+      <div class="cart-items" id="cart-items">
+        <div class="cart-empty" id="cart-empty">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" opacity="0.3"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+          <span>Agrega referencias del catálogo</span>
+        </div>
       </div>
+
+      <!-- Totales -->
+      <div id="cart-totals" style="display:none;">
+        <div class="cart-total-row">
+          <span class="cart-total-label">Subtotal</span>
+          <span style="font-size:0.88rem;color:var(--ink-2);font-family:var(--font-mono);" id="cart-subtotal">$0</span>
+        </div>
+        <div class="cart-total-row" style="border-top: 1px solid var(--edge);">
+          <span class="cart-total-label" style="font-weight:700;color:var(--ink-2);">Total</span>
+          <span class="cart-total-val" id="cart-total">$0</span>
+        </div>
+      </div>
+
+      <div class="card-divider" style="margin:12px 0;"></div>
+
+      <!-- Resumen del cliente (solo en panel 2) -->
+      <div id="cart-cliente-resumen" style="display:none;">
+        <div style="font-size:0.72rem;color:var(--ink-4);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Cliente</div>
+        <div style="font-size:0.85rem;color:var(--ink-2);font-weight:600;" id="resumen-cliente-nombre">—</div>
+        <div style="font-size:0.75rem;color:var(--ink-3);margin-top:2px;" id="resumen-entrega">—</div>
+      </div>
+
+      <!-- Botón submit final -->
+      <button type="button" class="btn btn-primary btn-block" id="btn-submit-final"
+              onclick="submitPedido()" style="display:none;margin-top:12px;">
+        🚀 Crear pedido y enviar a producción
+      </button>
+
     </div>
-
-    <div class="grid-2">
-      <div class="field">
-        <label>Destino</label>
-        <select name="destino" required>
-          <option value="externo">Cliente externo</option>
-          <option value="interno">Consumo interno</option>
-        </select>
-      </div>
-      <div class="field">
-        <label>Fecha de entrega <span class="dim">(mín. 15 días)</span></label>
-        <input type="date" name="fechaEntrega"
-               min="<%= fechaMinima %>" value="<%= fechaMinima %>" required />
-      </div>
-    </div>
-  </form>
-</div>
-
-<div class="card">
-  <h2 style="margin-bottom:14px;">Referencias del pedido</h2>
-
-  <div class="field autocomplete">
-    <label>Buscar referencia (SKU o nombre)</label>
-    <input id="buscador" placeholder="Escribe al menos 2 caracteres..." autocomplete="off" />
-    <div id="ac-list" class="ac-list"></div>
   </div>
-
-  <div id="items-wrap"></div>
-  <p class="dim" style="margin-top:8px;">
-    Agrega una o más referencias. Indica cantidad y valor unitario.
-  </p>
-
-  <div class="card-divider"></div>
-
-  <div class="field">
-    <label>Notas <span class="dim">(opcional)</span></label>
-    <textarea form="fp" name="notas" placeholder="Instrucciones especiales, color, empaque..."></textarea>
-  </div>
-
-  <button type="submit" form="fp" class="btn btn-primary btn-block">
-    Crear pedido y enviar a producción
-  </button>
 </div>
 
 <script>
 (function () {
-  const buscador = document.getElementById('buscador');
-  const acList   = document.getElementById('ac-list');
-  const wrap     = document.getElementById('items-wrap');
-  const form     = document.getElementById('fp');
-  let timer;
+  // ── Estado del carrito ─────────────────────────────────────────
+  const cart = {};  // { refId: { sku, nombre, cantidad, valorUnitario } }
 
-  buscador.addEventListener('input', () => {
-    clearTimeout(timer);
-    const q = buscador.value.trim();
-    if (q.length < 2) { acList.style.display = 'none'; return; }
-    timer = setTimeout(async () => {
-      try {
-        const r    = await fetch('/pedidos/api/referencias?q=' + encodeURIComponent(q));
-        const refs = await r.json();
-        acList.innerHTML = refs.length
-          ? refs.map(r => `
-              <div class="ac-item"
-                   data-id="${r._id}" data-sku="${r.sku}" data-nombre="${r.nombre}"
-                   onclick="addItem(this)">
-                <div class="ac-sku">${r.sku} · ${r.tipo} · ${r.materiaPrima||''}</div>
-                <div class="ac-name">${r.nombre}</div>
-              </div>`).join('')
-          : '<div class="ac-item"><span class="dim">Sin resultados</span></div>';
-        acList.style.display = 'block';
-      } catch (e) { console.error(e); }
-    }, 250);
-  });
+  // ── DOM refs ──────────────────────────────────────────────────
+  const cartItemsEl  = document.getElementById('cart-items');
+  const cartEmptyEl  = document.getElementById('cart-empty');
+  const cartCountEl  = document.getElementById('cart-count');
+  const cartTotalsEl = document.getElementById('cart-totals');
+  const cartSubEl    = document.getElementById('cart-subtotal');
+  const cartTotalEl  = document.getElementById('cart-total');
+  const btnClear     = document.getElementById('btn-clear');
+  const btnConfirmar = document.getElementById('btn-confirmar');
+  const cartHint     = document.getElementById('cart-hint-left');
+  const btnSubmitFinal = document.getElementById('btn-submit-final');
+  const cartClienteResumen = document.getElementById('cart-cliente-resumen');
 
-  document.addEventListener('click', e => {
-    if (!e.target.closest('.autocomplete')) acList.style.display = 'none';
-  });
-
-  window.addItem = function (opt) {
-    if (form.querySelector(`input[value="${opt.dataset.id}"][name="items[ref]"]`)) {
-      acList.style.display = 'none'; buscador.value = ''; return;
-    }
-    const div = document.createElement('div');
-    div.className = 'line-item';
-    div.innerHTML = `
-      <div>
-        <div style="font-weight:600;font-size:.88rem;">${opt.dataset.sku}</div>
-        <div class="dim">${opt.dataset.nombre}</div>
-        <input type="hidden" name="items[ref]" value="${opt.dataset.id}" form="fp" />
-      </div>
-      <div>
-        <div class="dim" style="margin-bottom:5px;font-size:.72rem;letter-spacing:.5px;text-transform:uppercase;">Cant.</div>
-        <input type="number" name="items[cantidad]" min="1" value="1000" form="fp" required />
-      </div>
-      <div>
-        <div class="dim" style="margin-bottom:5px;font-size:.72rem;letter-spacing:.5px;text-transform:uppercase;">Valor/ud</div>
-        <input type="number" name="items[valor]" min="0" step="0.01" value="0" form="fp" required />
-      </div>
-      <button type="button" class="btn-remove" onclick="this.parentElement.remove()">×</button>
-    `;
-    wrap.appendChild(div);
-    buscador.value = ''; acList.style.display = 'none';
+  // ── Navegación de pasos ───────────────────────────────────────
+  window.goToStep1 = function () {
+    document.getElementById('panel-1').style.display = '';
+    document.getElementById('panel-2').style.display = 'none';
+    document.getElementById('step-1').classList.add('active');
+    document.getElementById('step-2').classList.remove('active');
+    btnSubmitFinal.style.display = 'none';
+    cartClienteResumen.style.display = 'none';
   };
+
+  window.goToStep2 = function () {
+    const nombre = document.getElementById('clienteNombre').value.trim();
+    if (!nombre) {
+      document.getElementById('clienteNombre').focus();
+      document.getElementById('clienteNombre').style.borderColor = 'rgba(255,100,100,0.6)';
+      setTimeout(() => document.getElementById('clienteNombre').style.borderColor = '', 1500);
+      return;
+    }
+    const entrega = document.getElementById('fechaEntrega').value;
+    document.getElementById('panel-1').style.display = 'none';
+    document.getElementById('panel-2').style.display = '';
+    document.getElementById('step-1').classList.remove('active');
+    document.getElementById('step-1').classList.add('done');
+    document.getElementById('step-2').classList.add('active');
+
+    // Actualizar resumen del cliente en el carrito
+    document.getElementById('resumen-cliente-nombre').textContent = nombre;
+    document.getElementById('resumen-entrega').textContent = 
+      'Entrega: ' + (entrega ? new Date(entrega + 'T12:00:00').toLocaleDateString('es-CO', {day:'2-digit',month:'short',year:'numeric'}) : '—');
+    cartClienteResumen.style.display = 'block';
+
+    // Mostrar botón submit si hay items
+    if (Object.keys(cart).length > 0) btnSubmitFinal.style.display = '';
+  };
+
+  // ── Toggle referencia ──────────────────────────────────────────
+  window.toggleRef = function (card) {
+    const id = card.dataset.id;
+    if (cart[id]) {
+      removeFromCart(id);
+    } else {
+      addToCart(id, card.dataset.sku, card.dataset.nombre);
+    }
+  };
+
+  function addToCart(id, sku, nombre) {
+    cart[id] = { sku, nombre, cantidad: 1000, valorUnitario: 0 };
+    renderCart();
+    // Marcar card como in-cart
+    const card = document.querySelector(`.ref-card[data-id="${id}"]`);
+    if (card) card.classList.add('in-cart');
+  }
+
+  window.removeFromCart = function (id) {
+    delete cart[id];
+    renderCart();
+    const card = document.querySelector(`.ref-card[data-id="${id}"]`);
+    if (card) card.classList.remove('in-cart');
+  };
+
+  window.clearCart = function () {
+    Object.keys(cart).forEach(id => {
+      delete cart[id];
+      const card = document.querySelector(`.ref-card[data-id="${id}"]`);
+      if (card) card.classList.remove('in-cart');
+    });
+    renderCart();
+  };
+
+  // ── Render carrito ─────────────────────────────────────────────
+  function renderCart() {
+    const ids = Object.keys(cart);
+    cartCountEl.textContent = ids.length;
+
+    // Actualizar botón confirmar
+    if (ids.length > 0) {
+      btnConfirmar.disabled = false;
+      cartHint.textContent = ids.length + ' referencia(s) en el pedido';
+      btnClear.style.display = '';
+    } else {
+      btnConfirmar.disabled = true;
+      cartHint.textContent = 'Agrega al menos una referencia';
+      btnClear.style.display = 'none';
+    }
+
+    // Botón submit final (solo visible en panel 2)
+    const enPanel2 = document.getElementById('panel-2').style.display !== 'none';
+    btnSubmitFinal.style.display = (ids.length > 0 && enPanel2) ? '' : 'none';
+
+    if (ids.length === 0) {
+      cartEmptyEl.style.display = 'flex';
+      cartTotalsEl.style.display = 'none';
+      // Limpiar items previos excepto el empty
+      Array.from(cartItemsEl.children).forEach(c => {
+        if (c !== cartEmptyEl) c.remove();
+      });
+      return;
+    }
+
+    cartEmptyEl.style.display = 'none';
+    cartTotalsEl.style.display = 'block';
+
+    // Limpiar y re-renderizar items
+    Array.from(cartItemsEl.children).forEach(c => {
+      if (c !== cartEmptyEl) c.remove();
+    });
+
+    let total = 0;
+    ids.forEach(id => {
+      const item = cart[id];
+      const subtotal = item.cantidad * item.valorUnitario;
+      total += subtotal;
+
+      const div = document.createElement('div');
+      div.className = 'cart-item';
+      div.id = 'cart-item-' + id;
+      div.innerHTML = `
+        <div class="cart-item-info">
+          <span class="cart-item-sku">${item.sku}</span>
+          <div class="cart-item-name">${item.nombre}</div>
+          <div class="cart-item-inputs">
+            <div>
+              <div class="inp-label">Cantidad</div>
+              <input type="number" min="1" value="${item.cantidad}"
+                     oninput="updateItem('${id}','cantidad',this.value)"
+                     inputmode="numeric" />
+            </div>
+            <div>
+              <div class="inp-label">$/ud</div>
+              <input type="number" min="0" step="0.01" value="${item.valorUnitario}"
+                     oninput="updateItem('${id}','valor',this.value)"
+                     inputmode="decimal" />
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
+          <button class="cart-remove" onclick="removeFromCart('${id}')" title="Quitar">×</button>
+          <div class="cart-item-subtotal" id="subtotal-${id}">
+            $${subtotal.toLocaleString('es-CO')}
+          </div>
+        </div>
+      `;
+      cartItemsEl.appendChild(div);
+    });
+
+    cartSubEl.textContent = '$' + total.toLocaleString('es-CO');
+    cartTotalEl.textContent = '$' + total.toLocaleString('es-CO');
+  }
+
+  window.updateItem = function (id, field, val) {
+    if (!cart[id]) return;
+    const n = parseFloat(val) || 0;
+    if (field === 'cantidad') cart[id].cantidad = Math.max(1, Math.round(n));
+    if (field === 'valor')    cart[id].valorUnitario = Math.max(0, n);
+    // Actualizar subtotal inline sin re-renderizar todo
+    const sub = document.getElementById('subtotal-' + id);
+    if (sub) sub.textContent = '$' + (cart[id].cantidad * cart[id].valorUnitario).toLocaleString('es-CO');
+    // Actualizar totales
+    let total = Object.values(cart).reduce((s, i) => s + i.cantidad * i.valorUnitario, 0);
+    cartSubEl.textContent = '$' + total.toLocaleString('es-CO');
+    cartTotalEl.textContent = '$' + total.toLocaleString('es-CO');
+  };
+
+  // ── Confirmar (mostrar panel 3 / submit) ──────────────────────
+  window.confirmarPedido = function () {
+    if (Object.keys(cart).length === 0) return;
+    // Si no hay cliente todavía, pedir que vuelva al step 1
+    const nombre = document.getElementById('clienteNombre').value.trim();
+    if (!nombre) { goToStep1(); return; }
+
+    document.getElementById('step-2').classList.remove('active');
+    document.getElementById('step-2').classList.add('done');
+    document.getElementById('step-3').classList.add('active');
+    btnSubmitFinal.style.display = '';
+    btnSubmitFinal.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  };
+
+  // ── Submit final ───────────────────────────────────────────────
+  window.submitPedido = function () {
+    const nombre = document.getElementById('clienteNombre').value.trim();
+    if (!nombre) { alert('Falta el nombre del cliente.'); goToStep1(); return; }
+    if (Object.keys(cart).length === 0) { alert('El pedido no tiene referencias.'); return; }
+
+    const form = document.getElementById('fp');
+    const container = document.getElementById('hidden-items-container');
+    container.innerHTML = '';
+
+    // Campos del pedido
+    const add = (n, v) => {
+      const i = document.createElement('input');
+      i.type = 'hidden'; i.name = n; i.value = v;
+      container.appendChild(i);
+    };
+
+    add('clienteNombre',    document.getElementById('clienteNombre').value.trim());
+    add('clienteContacto',  document.getElementById('clienteContacto').value.trim());
+    add('destino',          document.getElementById('destino').value);
+    add('fechaEntrega',     document.getElementById('fechaEntrega').value);
+    add('notas',            document.getElementById('notas').value.trim());
+
+    // Items del carrito
+    Object.entries(cart).forEach(([id, item]) => {
+      add('items[ref]',      id);
+      add('items[cantidad]', item.cantidad);
+      add('items[valor]',    item.valorUnitario);
+    });
+
+    // Deshabilitar botón para evitar doble submit
+    btnSubmitFinal.disabled = true;
+    btnSubmitFinal.textContent = 'Enviando…';
+
+    form.submit();
+  };
+
+  // ── Búsqueda de referencias ────────────────────────────────────
+  let tipoActivo = 'all';
+
+  window.filtrarTipo = function (btn) {
+    document.querySelectorAll('.filter-chip[data-tipo]').forEach(c => c.classList.remove('active'));
+    btn.classList.add('active');
+    tipoActivo = btn.dataset.tipo;
+    aplicarFiltros();
+  };
+
+  window.buscarRefs = function (q) {
+    aplicarFiltros(q);
+  };
+
+  function aplicarFiltros(q) {
+    q = (q !== undefined ? q : document.getElementById('ref-busqueda').value).toLowerCase().trim();
+    document.querySelectorAll('.ref-card').forEach(card => {
+      const matchTipo = tipoActivo === 'all' || card.dataset.tipo === tipoActivo;
+      const matchQ = !q || card.dataset.sku.toLowerCase().includes(q) || card.dataset.nombre.toLowerCase().includes(q);
+      card.style.display = (matchTipo && matchQ) ? '' : 'none';
+    });
+  }
+
+  // ── Búsqueda AJAX si hay muchas referencias ────────────────────
+  let ajaxTimer;
+  document.getElementById('ref-busqueda').addEventListener('input', function () {
+    const q = this.value.trim();
+    // Si hay pocas refs (<= 200 en DOM), solo filtrar en cliente
+    const total = document.querySelectorAll('.ref-card').length;
+    if (total >= 199 && q.length >= 2) {
+      clearTimeout(ajaxTimer);
+      ajaxTimer = setTimeout(() => ajaxSearch(q), 280);
+    } else {
+      aplicarFiltros(q);
+    }
+  });
+
+  async function ajaxSearch(q) {
+    try {
+      const r = await fetch('/pedidos/api/referencias?q=' + encodeURIComponent(q));
+      const refs = await r.json();
+      const grid = document.getElementById('refs-grid');
+      // Esconder todas las cards estáticas
+      document.querySelectorAll('.ref-card').forEach(c => c.style.display = 'none');
+      // Eliminar cards AJAX previas
+      document.querySelectorAll('.ref-card-ajax').forEach(c => c.remove());
+      refs.forEach(ref => {
+        // Si ya existe en DOM, solo mostrarla
+        const existing = document.querySelector(`.ref-card[data-id="${ref._id}"]`);
+        if (existing) { existing.style.display = ''; return; }
+        const div = document.createElement('div');
+        div.className = 'ref-card ref-card-ajax' + (cart[ref._id] ? ' in-cart' : '');
+        div.dataset.id = ref._id;
+        div.dataset.sku = ref.sku;
+        div.dataset.nombre = ref.nombre;
+        div.dataset.tipo = ref.tipo;
+        div.onclick = function () { window.toggleRef(this); };
+        div.innerHTML = `
+          <span class="rc-sku">${ref.sku}</span>
+          <div class="rc-name">${ref.nombre}</div>
+          <div class="rc-meta">
+            <span class="badge" style="font-size:0.60rem;">${ref.tipo}</span>
+          </div>
+        `;
+        grid.appendChild(div);
+      });
+    } catch (e) { console.error(e); }
+  }
+
 })();
 </script>
