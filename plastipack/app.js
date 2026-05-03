@@ -15,6 +15,7 @@ const passport = require('./config/passport');
 const app = express();
 connectDB();
 
+app.set('trust proxy', 1);   
 // ----- Vistas -----
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
@@ -40,7 +41,10 @@ app.use(
     cookie: {
       maxAge: 14 * 24 * 60 * 60 * 1000,
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      // secure automático: true si la conexión llega por HTTPS (Codespaces/prod)
+      // false en localhost HTTP
+      secure: process.env.NODE_ENV === 'production' || process.env.FORCE_SECURE === 'true',
+      sameSite: 'lax',
     },
   })
 );
