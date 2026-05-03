@@ -1,0 +1,45 @@
+<div class="auth-wrap">
+  <div class="auth-card">
+    <div class="card">
+      <div class="auth-orb"></div>
+      <h1>Crear cuenta</h1>
+      <p class="auth-sub">Ingresa tus datos para registrarte</p>
+
+      <form action="/auth/register" method="POST">
+        <div class="field">
+          <label>Nombre completo</label>
+          <input type="text" name="nombre" required placeholder="Juan Pérez" autofocus />
+        </div>
+        <div class="field">
+          <label>Email</label>
+          <input type="email" name="email" required placeholder="usuario@empresa.com"
+                 autocomplete="email" />
+        </div>
+        <div class="field">
+          <label>Contraseña</label>
+          <input type="password" name="password" required minlength="6"
+                 placeholder="Mínimo 6 caracteres" autocomplete="new-password" />
+        </div>
+        <div class="field mb-0">
+          <label>Confirmar contraseña</label>
+          <input type="password" name="password2" required minlength="6"
+                 placeholder="Repite la contraseña" autocomplete="new-password" />
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block mt-14">
+          Crear cuenta
+        </button>
+      </form>
+
+      <p class="auth-foot mt-8">
+        ¿Ya tienes cuenta? <a href="/auth/login">Iniciar sesión</a>
+      </p>
+
+      <p class="dim text-center" style="margin-top:18px;line-height:1.6;">
+        Tu rol será asignado por un Jefe de Producción.<br />
+        Si tu email está pre-autorizado en el sistema,<br />
+        recibirás el rol automáticamente.
+      </p>
+    </div>
+  </div>
+</div>

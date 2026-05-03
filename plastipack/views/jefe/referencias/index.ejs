@@ -1,48 +1,48 @@
-<div class="glass">
-  <div class="flex-between">
+<div class="card">
+  <div class="card-header">
     <div>
-      <h1>Referencias</h1>
-      <p class="muted" style="margin:0;">Catálogo de SKU activos</p>
+      <h1>Catálogo de referencias</h1>
+      <p class="sub">Soporta ~150.000 registros activos</p>
     </div>
     <a href="/referencias/nueva" class="btn btn-primary">+ Nueva</a>
   </div>
 
-  <form method="GET" action="/referencias" class="mt-12">
-    <div class="field" style="margin:0;">
-      <input name="q" value="<%= q || '' %>" placeholder="Buscar por SKU, nombre o materia prima..." />
+  <form method="GET" action="/referencias">
+    <div class="field mb-0">
+      <input name="q" value="<%= q||'' %>"
+             placeholder="Buscar por SKU, nombre o materia prima..."
+             style="border-radius:var(--r-pill);" />
     </div>
   </form>
 </div>
 
-<div class="glass">
-  <% if (!referencias.length) { %>
-    <p class="muted">No hay referencias.</p>
+<div class="card">
+  <% if(!referencias.length){ %>
+    <div class="inset text-center"><p class="muted" style="padding:24px 0;">No hay referencias.<br><a href="/referencias/nueva">Crear la primera →</a></p></div>
   <% } else { %>
     <div class="table-wrap">
       <table>
-        <thead>
-          <tr>
-            <th>SKU</th><th>Nombre</th><th>Tipo</th>
-            <th>Materia prima</th><th>Destino</th><th>Impresión</th>
-          </tr>
-        </thead>
+        <thead><tr>
+          <th>SKU</th><th>Nombre</th><th>Tipo</th><th>Materia prima</th><th>Destino</th><th>Impresión</th>
+        </tr></thead>
         <tbody>
-          <% referencias.forEach(function(r){ %>
+          <% referencias.forEach(r => { %>
             <tr>
-              <td><strong><%= r.sku %></strong></td>
-              <td><%= r.nombre %></td>
-              <td><span class="badge en_produccion"><%= r.tipo %></span></td>
-              <td><%= r.materiaPrima %></td>
-              <td><%= r.destino %></td>
-              <td>
-                <% if (r.impresion && r.impresion.lleva) { %>
-                  Sí (<%= r.impresion.colores %> col.)
+              <td><span class="sku-tag"><%= r.sku %></span></td>
+              <td style="max-width:240px;color:var(--ink);font-weight:500;"><%= r.nombre %></td>
+              <td><span class="badge badge-produccion"><%= r.tipo %></span></td>
+              <td class="dim"><%= r.materiaPrima %></td>
+              <td class="dim"><%= r.destino %></td>
+              <td class="dim">
+                <% if(r.impresion&&r.impresion.lleva){ %>
+                  ✓ <%= r.impresion.colores %> col.
                 <% } else { %>—<% } %>
               </td>
             </tr>
-          <% }); %>
+          <% }) %>
         </tbody>
       </table>
     </div>
+    <p class="dim" style="margin-top:12px;text-align:right;">Mostrando primeros 100 resultados.</p>
   <% } %>
 </div>

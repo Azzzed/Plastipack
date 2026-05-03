@@ -1,67 +1,84 @@
-<div class="glass">
-  <div class="flex-between">
+<%
+  const eb = e => ({
+    en_espera:'badge-espera', en_produccion:'badge-produccion',
+    completado:'badge-completado', entregado:'badge-entregado'
+  }[e] || 'badge-espera');
+  const isEditor = user.rol === 'jefe' || user.rol === 'admin';
+%>
+
+<div class="card">
+  <div class="card-header">
     <div>
       <h1><%= pedido.numero %></h1>
-      <p class="muted" style="margin:0;">
-        <%= pedido.cliente.nombre %> · <%= pedido.destino %> · entrega <%= new Date(pedido.fechaEntrega).toLocaleDateString('es-CO') %>
+      <p class="sub">
+        <%= pedido.cliente.nombre %>
+        &nbsp;·&nbsp; <%= pedido.destino %>
+        &nbsp;·&nbsp; Entrega: <%= new Date(pedido.fechaEntrega).toLocaleDateString('es-CO') %>
       </p>
     </div>
-    <span class="badge <%= pedido.estadoGeneral %>"><%= pedido.estadoGeneral.replace('_',' ') %></span>
+    <span class="badge <%= eb(pedido.estadoGeneral) %>">
+      <%= pedido.estadoGeneral.replace('_',' ') %>
+    </span>
   </div>
-</div>
 
-<div class="glass">
-  <h2>Referencias</h2>
   <div class="table-wrap">
     <table>
-      <thead>
-        <tr>
-          <th>SKU</th><th>Nombre</th>
-          <th style="text-align:right;">Cantidad</th>
-          <th style="text-align:right;">Producido</th>
-          <th style="text-align:right;">Valor unit.</th>
-          <th>Estado</th>
-          <% if (user.rol === 'jefe' || user.rol === 'admin') { %><th>Acción</th><% } %>
-        </tr>
-      </thead>
+      <thead><tr>
+        <th>SKU</th><th>Nombre</th>
+        <th class="td-right">Cantidad</th>
+        <th class="td-right">Producido</th>
+        <th class="td-right">Valor/ud</th>
+        <th>Estado</th>
+        <% if(isEditor){ %><th>Cambiar</th><% } %>
+      </tr></thead>
       <tbody>
-        <% pedido.items.forEach(function(it){ %>
+        <% pedido.items.forEach(it => { %>
           <tr>
-            <td><strong><%= it.referencia.sku %></strong></td>
-            <td><%= it.referencia.nombre %></td>
-            <td style="text-align:right;"><%= it.cantidad.toLocaleString('es-CO') %></td>
-            <td style="text-align:right;"><%= (it.producido || 0).toLocaleString('es-CO') %></td>
-            <td style="text-align:right;">$<%= it.valorUnitario.toLocaleString('es-CO') %></td>
-            <td><span class="badge <%= it.estado %>"><%= it.estado.replace('_',' ') %></span></td>
-            <% if (user.rol === 'jefe' || user.rol === 'admin') { %>
+            <td><span class="sku-tag"><%= it.referencia.sku %></span></td>
+            <td style="max-width:240px;"><%= it.referencia.nombre %></td>
+            <td class="td-right td-mono"><%= it.cantidad.toLocaleString('es-CO') %></td>
+            <td class="td-right td-mono"><%= (it.producido||0).toLocaleString('es-CO') %></td>
+            <td class="td-right td-mono">$<%= it.valorUnitario.toLocaleString('es-CO') %></td>
+            <td><span class="badge <%= eb(it.estado) %>"><%= it.estado.replace('_',' ') %></span></td>
+            <% if(isEditor){ %>
               <td>
-                <form method="POST" action="/pedidos/<%= pedido._id %>/items/<%= it._id %>/estado" style="display:flex;gap:6px;">
-                  <select name="estado" style="padding:6px;background:rgba(7,11,25,.65);color:var(--text);border:1px solid var(--border);border-radius:8px;">
-                    <option value="en_espera"   <%= it.estado === 'en_espera' ? 'selected' : '' %>>En espera</option>
-                    <option value="en_produccion" <%= it.estado === 'en_produccion' ? 'selected' : '' %>>En producción</option>
-                    <option value="completado"  <%= it.estado === 'completado' ? 'selected' : '' %>>Completado</option>
-                    <option value="entregado"   <%= it.estado === 'entregado' ? 'selected' : '' %>>Entregado</option>
+                <form method="POST"
+                      action="/pedidos/<%= pedido._id %>/items/<%= it._id %>/estado"
+                      style="display:flex;gap:6px;align-items:center;">
+                  <select name="estado"
+                          style="padding:6px 28px 6px 8px;background:rgba(0,0,0,.5);color:var(--ink);border:1px solid var(--edge);border-radius:var(--r-sm);font-size:.80rem;outline:none;">
+                    <% ['en_espera','en_produccion','completado','entregado'].forEach(s=>{ %>
+                      <option value="<%= s %>" <%= it.estado===s?'selected':'' %>>
+                        <%= s.replace('_',' ') %>
+                      </option>
+                    <% }) %>
                   </select>
-                  <button class="btn" style="padding:6px 10px;font-size:.8rem;">OK</button>
+                  <button class="btn btn-sm">OK</button>
                 </form>
               </td>
             <% } %>
           </tr>
-        <% }); %>
+        <% }) %>
       </tbody>
     </table>
   </div>
 
-  <p class="mt-12" style="text-align:right;font-size:1.1rem;">
-    Total: <strong>$<%= (pedido.total || 0).toLocaleString('es-CO') %></strong>
-  </p>
+  <div class="card-divider"></div>
+  <div class="text-right">
+    <span class="dim">Total pedido</span>
+    <strong style="font-size:1.2rem;margin-left:12px;">
+      $<%= (pedido.total||0).toLocaleString('es-CO') %>
+    </strong>
+  </div>
 </div>
 
-<% if (pedido.notas) { %>
-  <div class="glass">
+<% if(pedido.notas){ %>
+  <div class="card">
     <h3>Notas</h3>
-    <p><%= pedido.notas %></p>
+    <p class="muted"><%= pedido.notas %></p>
   </div>
 <% } %>
 
-<a href="/pedidos" class="btn mt-12">← Volver</a>
+<div style="margin-top:8px;">
+  <a href="/pedidos" class="btn">← Volver</a>
+</div>

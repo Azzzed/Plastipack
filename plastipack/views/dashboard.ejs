@@ -1,35 +1,32 @@
-<div class="glass">
-  <div class="flex-between">
+<div class="card">
+  <div class="card-header">
     <div>
-      <h1>Hola, <%= user.nombre.split(' ')[0] %> 👋</h1>
-      <p class="muted" style="margin:0;">Panel de Jefe de Producción</p>
+      <h1>Buenos días, <%= user.nombre.split(' ')[0] %></h1>
+      <p class="sub">Panel de <%= user.rol === 'admin' ? 'Administración' : 'Jefe de Producción' %></p>
     </div>
     <a href="/referencias/nueva" class="btn btn-primary">+ Nueva referencia</a>
   </div>
-</div>
 
-<div class="glass">
-  <h2>Atajos</h2>
-  <div class="stats">
-    <a href="/ordenes" class="stat" style="text-decoration:none;color:inherit;">
-      <div class="lbl">Órdenes activas</div>
-      <div class="val neon">→</div>
-      <div class="tiny">Ver pedidos en producción</div>
+  <div class="stats-grid">
+    <a href="/ordenes" class="stat-tile" style="text-decoration:none;">
+      <div class="st-label">Órdenes activas</div>
+      <div class="st-val">→</div>
+      <div class="st-sub">Pedidos en planta</div>
     </a>
-    <a href="/referencias" class="stat" style="text-decoration:none;color:inherit;">
-      <div class="lbl">Catálogo</div>
-      <div class="val neon">→</div>
-      <div class="tiny">Gestionar referencias</div>
+    <a href="/referencias" class="stat-tile" style="text-decoration:none;">
+      <div class="st-label">Catálogo</div>
+      <div class="st-val">→</div>
+      <div class="st-sub">~150 K referencias</div>
     </a>
-    <a href="/reportes" class="stat" style="text-decoration:none;color:inherit;">
-      <div class="lbl">Producción</div>
-      <div class="val neon">→</div>
-      <div class="tiny">Reportes por turno</div>
+    <a href="/reportes" class="stat-tile" style="text-decoration:none;">
+      <div class="st-label">Producción</div>
+      <div class="st-val">→</div>
+      <div class="st-sub">Reportes por turno</div>
     </a>
-    <a href="/admin/usuarios" class="stat" style="text-decoration:none;color:inherit;">
-      <div class="lbl">Equipo</div>
-      <div class="val neon">→</div>
-      <div class="tiny">Asignar roles</div>
+    <a href="/admin/usuarios" class="stat-tile" style="text-decoration:none;">
+      <div class="st-label">Equipo</div>
+      <div class="st-val">→</div>
+      <div class="st-sub">Asignar roles</div>
     </a>
   </div>
 </div>

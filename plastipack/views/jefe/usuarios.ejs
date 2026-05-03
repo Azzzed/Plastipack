@@ -1,61 +1,77 @@
-<div class="glass">
-  <h1>Gestión de usuarios</h1>
-  <p class="muted" style="margin:0;">Asigna roles a los nuevos miembros del equipo.</p>
+<%
+  const rb = r => ({admin:'badge-admin',jefe:'badge-jefe',vendedor:'badge-vendedor',
+    operario:'badge-operario',pendiente:'badge-pendiente'}[r]||'badge-pendiente');
+%>
+
+<div class="card">
+  <h1>Gestión del equipo</h1>
+  <p class="sub">Asigna roles a los usuarios registrados en el sistema.</p>
 </div>
 
-<% if (pendientes.length) { %>
-  <div class="glass">
-    <h2>Cuentas pendientes (<%= pendientes.length %>)</h2>
+<% if(pendientes.length){ %>
+  <div class="card">
+    <div class="card-header">
+      <h2>Cuentas pendientes</h2>
+      <span class="badge badge-espera"><%= pendientes.length %> sin rol</span>
+    </div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Usuario</th><th>Email</th><th>Asignar rol</th></tr></thead>
+        <thead><tr><th>Usuario</th><th>Email</th><th>Fecha registro</th><th>Asignar rol</th></tr></thead>
         <tbody>
-          <% pendientes.forEach(function(u){ %>
+          <% pendientes.forEach(u=>{ %>
             <tr>
-              <td><strong><%= u.nombre %></strong></td>
-              <td><%= u.email %></td>
+              <td style="font-weight:500;color:var(--ink)"><%= u.nombre %></td>
+              <td class="dim"><%= u.email %></td>
+              <td class="dim" style="white-space:nowrap;">
+                <%= new Date(u.createdAt).toLocaleDateString('es-CO') %>
+              </td>
               <td>
-                <form method="POST" action="/admin/usuarios/<%= u._id %>/rol" style="display:flex;gap:6px;">
-                  <select name="rol" required style="padding:8px;background:rgba(7,11,25,.65);color:var(--text);border:1px solid var(--border);border-radius:8px;">
+                <form method="POST" action="/admin/usuarios/<%= u._id %>/rol"
+                      style="display:flex;gap:6px;align-items:center;">
+                  <select name="rol" style="padding:7px 28px 7px 10px;background:rgba(0,0,0,.5);color:var(--ink);border:1px solid var(--edge);border-radius:var(--r-sm);font-size:.82rem;outline:none;">
                     <option value="vendedor">Vendedor</option>
                     <option value="operario">Operario</option>
                     <option value="jefe">Jefe</option>
                     <option value="admin">Admin</option>
                   </select>
-                  <button class="btn btn-primary" style="padding:8px 14px;">Asignar</button>
+                  <button class="btn btn-sm btn-primary">Asignar</button>
                 </form>
               </td>
             </tr>
-          <% }); %>
+          <% }) %>
         </tbody>
       </table>
     </div>
   </div>
 <% } %>
 
-<div class="glass">
-  <h2>Todos los usuarios (<%= todos.length %>)</h2>
+<div class="card">
+  <h2 style="margin-bottom:14px;">Todos los usuarios (<%= todos.length %>)</h2>
   <div class="table-wrap">
     <table>
-      <thead><tr><th>Usuario</th><th>Email</th><th>Rol actual</th><th>Cambiar</th></tr></thead>
+      <thead><tr><th>Usuario</th><th>Email</th><th>Auth</th><th>Rol actual</th><th>Cambiar</th></tr></thead>
       <tbody>
-        <% todos.forEach(function(u){ %>
+        <% todos.forEach(u=>{ %>
           <tr>
-            <td><strong><%= u.nombre %></strong></td>
-            <td><%= u.email %></td>
-            <td><span class="badge <%= u.rol === 'pendiente' ? 'en_espera' : 'en_produccion' %>"><%= u.rol %></span></td>
+            <td style="font-weight:500;color:var(--ink)"><%= u.nombre %></td>
+            <td class="dim"><%= u.email %></td>
+            <td class="dim" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;">
+              <%= u.authProvider || 'local' %>
+            </td>
+            <td><span class="badge <%= rb(u.rol) %>"><%= u.rol %></span></td>
             <td>
-              <form method="POST" action="/admin/usuarios/<%= u._id %>/rol" style="display:flex;gap:6px;">
-                <select name="rol" style="padding:6px;background:rgba(7,11,25,.65);color:var(--text);border:1px solid var(--border);border-radius:8px;">
-                  <% roles.forEach(function(r){ %>
-                    <option value="<%= r %>" <%= u.rol === r ? 'selected' : '' %>><%= r %></option>
-                  <% }); %>
+              <form method="POST" action="/admin/usuarios/<%= u._id %>/rol"
+                    style="display:flex;gap:6px;align-items:center;">
+                <select name="rol" style="padding:6px 28px 6px 8px;background:rgba(0,0,0,.5);color:var(--ink);border:1px solid var(--edge);border-radius:var(--r-sm);font-size:.78rem;outline:none;">
+                  <% roles.forEach(r=>{ %>
+                    <option value="<%= r %>" <%= u.rol===r?'selected':'' %>><%= r %></option>
+                  <% }) %>
                 </select>
-                <button class="btn" style="padding:6px 10px;font-size:.8rem;">OK</button>
+                <button class="btn btn-sm">OK</button>
               </form>
             </td>
           </tr>
-        <% }); %>
+        <% }) %>
       </tbody>
     </table>
   </div>

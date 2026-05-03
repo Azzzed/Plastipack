@@ -1,11 +1,15 @@
-<div class="login-wrap">
-  <div class="glass login-card">
-    <div class="brand-mark"></div>
-    <h1>Cuenta pendiente</h1>
-    <p class="muted">
-      Tu cuenta <strong><%= user.email %></strong> aún no tiene un rol asignado.
-      Un Jefe de Producción debe activarte desde el panel de usuarios.
-    </p>
-    <a href="/auth/logout" class="btn btn-block mt-20">Cerrar sesión</a>
+<div class="auth-wrap">
+  <div class="auth-card">
+    <div class="card" style="text-align:center;">
+      <div class="auth-orb"></div>
+      <h1>Cuenta pendiente</h1>
+      <p class="auth-sub" style="margin-bottom:0;">
+        <strong style="color:var(--ink-2);"><%= user.email %></strong><br />
+        aún no tiene un rol asignado en el sistema.<br />
+        Un Jefe de Producción debe activarte desde el panel de equipo.
+      </p>
+      <div class="card-divider mt-20"></div>
+      <a href="/auth/logout" class="btn btn-block">Cerrar sesión</a>
+    </div>
   </div>
 </div>

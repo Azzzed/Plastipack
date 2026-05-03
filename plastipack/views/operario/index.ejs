@@ -1,135 +1,174 @@
-<!--
-  Vista principal del Operario (mobile-first).
-  Pasos:
-    1. Elegir selladora (1..5)
-    2. Elegir referencia disponible (planilla del día)
-    3. Llenar el turno: rollo, horas, producción, desperdicio
--->
+<%
+  function badgeCls(e){
+    const m={en_espera:'badge-espera',en_produccion:'badge-produccion',completado:'badge-completado',entregado:'badge-entregado'};
+    return m[e]||'badge-espera';
+  }
+%>
 
-<div class="glass">
-  <h1>Mi producción</h1>
-  <p class="muted" style="margin:0 0 14px;">Selecciona tu selladora y registra el turno.</p>
-
-  <h3>Selladora</h3>
-  <div class="machines">
-    <% selladoras.forEach(function(n){ %>
-      <a href="/operario?selladora=<%= n %>" class="machine <%= n === selladora ? 'active' : '' %>">
+<!-- ── Selector de selladora ── -->
+<div class="card">
+  <h3>Selladora activa</h3>
+  <div class="sealer-grid">
+    <% selladoras.forEach(n => { %>
+      <a href="/operario?selladora=<%= n %>"
+         class="sealer-btn <%= n === selladora ? 'active' : '' %>">
         <span class="num"><%= n %></span>
         <span class="lbl">Selladora</span>
       </a>
-    <% }); %>
+    <% }) %>
   </div>
+  <p class="dim">
+    Una misma referencia puede estar siendo trabajada en paralelo por varias selladoras.
+    Cada turno queda registrado de forma independiente.
+  </p>
 </div>
 
-<div class="glass">
-  <h2>Planilla del día — Selladora <%= selladora %></h2>
-  <p class="tiny">
-    Toca una referencia para cargar sus datos en el formulario.
-    Una misma referencia puede ser trabajada por otras selladoras al mismo tiempo.
-  </p>
+<!-- ── Planilla del día ── -->
+<div class="card">
+  <h2 style="margin-bottom:14px;">Planilla — Selladora <%= selladora %></h2>
 
-  <% if (itemsDisponibles.length === 0) { %>
-    <p class="muted">No hay referencias en producción en este momento.</p>
+  <% if (!itemsDisponibles.length) { %>
+    <div class="inset text-center">
+      <p class="muted" style="padding:20px 0;">No hay referencias en producción en este momento.</p>
+    </div>
   <% } else { %>
-    <div id="lista-items">
-      <% itemsDisponibles.forEach(function(it){
-        var pct = Math.min(100, Math.round((it.producido / it.cantidad) * 100));
+    <div id="planilla">
+      <% itemsDisponibles.forEach(it => {
+           const pct = Math.min(100, Math.round((it.producido/it.cantidad)*100));
       %>
-        <div class="item-card"
+        <div class="ref-item"
              data-orden="<%= it.ordenId %>"
-             data-orden-num="<%= it.ordenNumero %>"
              data-item="<%= it.itemId %>"
+             data-num="<%= it.ordenNumero %>"
              data-sku="<%= it.referencia.sku %>"
-             data-pendiente="<%= it.pendiente %>">
-          <div style="flex:1;">
-            <div class="sku"><%= it.referencia.sku %> · <%= it.ordenNumero %></div>
-            <div class="nombre"><%= it.referencia.nombre %></div>
-            <div class="meta">
-              <%= it.producido %> / <%= it.cantidad %> ud — pendiente <strong><%= it.pendiente %></strong>
+             data-nombre="<%= it.referencia.nombre %>"
+             data-pendiente="<%= it.pendiente %>"
+             onclick="seleccionarItem(this)">
+
+          <div style="flex:1;min-width:0;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;">
+              <span class="sku-tag"><%= it.referencia.sku %></span>
+              <span class="dim"><%= it.ordenNumero %></span>
+              <span class="badge badge-produccion" style="margin-left:auto;">En producción</span>
             </div>
-            <div class="progress"><div style="width: <%= pct %>%"></div></div>
+            <div class="ref-name"><%= it.referencia.nombre %></div>
+            <div class="ref-meta" style="margin-top:4px;">
+              <%= it.producido.toLocaleString('es-CO') %> / <%= it.cantidad.toLocaleString('es-CO') %> ud
+              &nbsp;·&nbsp; pendiente <strong style="color:var(--ink-2);"><%= it.pendiente.toLocaleString('es-CO') %></strong>
+              &nbsp;·&nbsp; entrega <%= new Date(it.fechaEntrega).toLocaleDateString('es-CO') %>
+            </div>
+            <div class="progress-bar" style="margin-top:10px;">
+              <div class="progress-bar-fill" style="width:<%= pct %>%;"></div>
+            </div>
           </div>
-          <span class="badge en_produccion">En producción</span>
+
+          <!-- Indicador de selección -->
+          <div class="sel-dot" style="
+            width:22px;height:22px;border-radius:50%;flex-shrink:0;margin-top:2px;
+            border:1.5px solid var(--edge);background:transparent;
+            transition:all .15s;display:flex;align-items:center;justify-content:center;
+          ">
+            <svg width="11" height="9" viewBox="0 0 11 9" style="display:none;">
+              <path d="M1 4.5l3 3 6-7" stroke="white" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
         </div>
-      <% }); %>
+      <% }) %>
     </div>
   <% } %>
 </div>
 
-<div class="glass" id="form-card">
-  <h2>Registrar turno</h2>
+<!-- ── Formulario de turno ── -->
+<div class="card" id="form-card">
+  <h2 style="margin-bottom:4px;">Registrar turno</h2>
+  <p class="sub" style="margin-bottom:18px;">Selladora <strong style="color:var(--ink);"><%= selladora %></strong> · Completa todos los campos</p>
 
-  <form action="/operario/turno" method="POST" autocomplete="off">
+  <form action="/operario/turno" method="POST" id="form-turno" autocomplete="off">
     <input type="hidden" name="selladora" value="<%= selladora %>" />
-    <input type="hidden" name="ordenId" id="ordenId" />
-    <input type="hidden" name="itemId" id="itemId" />
+    <input type="hidden" name="ordenId"   id="inp-orden" />
+    <input type="hidden" name="itemId"    id="inp-item" />
 
     <div class="field">
       <label>Referencia seleccionada</label>
-      <input id="refSeleccionada" placeholder="Toca una referencia arriba" readonly />
+      <input id="inp-ref" placeholder="Selecciona una referencia en la planilla de arriba" readonly
+             style="cursor:default;color:var(--ink-3);" />
     </div>
 
     <div class="field">
-      <label>Número de rollo montado</label>
+      <label>Número de rollo</label>
       <input name="numeroRollo" required placeholder="ej. R-2026-04812" inputmode="text" />
     </div>
 
-    <div class="row cols-2">
+    <div class="grid-2">
       <div class="field">
         <label>Hora de inicio</label>
-        <input type="datetime-local" name="horaInicio" id="horaInicio" required />
+        <input type="datetime-local" name="horaInicio" id="inp-inicio" required />
       </div>
       <div class="field">
         <label>Hora de fin</label>
-        <input type="datetime-local" name="horaFin" id="horaFin" required />
+        <input type="datetime-local" name="horaFin" id="inp-fin" required />
       </div>
     </div>
 
-    <div class="row cols-2">
+    <div class="grid-2">
       <div class="field">
         <label>Cantidad producida (ud)</label>
-        <input type="number" name="cantidadProducida" min="1" required inputmode="numeric" />
-        <div class="hint" id="hintPendiente"></div>
+        <input type="number" name="cantidadProducida" min="1" required inputmode="numeric"
+               placeholder="0" />
+        <div class="hint" id="hint-pend"></div>
       </div>
       <div class="field">
         <label>Desperdicio (kg)</label>
-        <input type="number" name="desperdicio" min="0" step="0.01" value="0" required inputmode="decimal" />
+        <input type="number" name="desperdicio" min="0" step="0.01" value="0" required
+               inputmode="decimal" placeholder="0.00" />
       </div>
     </div>
 
     <div class="field">
-      <label>Observaciones (opcional)</label>
-      <textarea name="observaciones" placeholder="Paradas, fallas, notas del turno..."></textarea>
+      <label>Observaciones <span class="dim">(opcional)</span></label>
+      <textarea name="observaciones"
+                placeholder="Paradas de máquina, fallas del material, notas del turno..."></textarea>
     </div>
 
-    <button type="submit" class="btn btn-primary btn-block">Guardar turno</button>
+    <button type="submit" class="btn btn-primary btn-block">
+      Guardar turno
+    </button>
   </form>
 </div>
 
+<!-- ── Registros del día ── -->
 <% if (misLogs && misLogs.length) { %>
-  <div class="glass">
-    <h2>Mis registros de hoy</h2>
+  <div class="card">
+    <h2 style="margin-bottom:14px;">Mis registros de hoy</h2>
     <div class="table-wrap">
       <table>
         <thead>
           <tr>
-            <th>Hora</th><th>Sell.</th><th>Pedido</th><th>SKU</th><th>Rollo</th>
-            <th style="text-align:right;">Producido</th><th style="text-align:right;">Desp. kg</th><th>Min</th>
+            <th>Hora</th>
+            <th>Sell.</th>
+            <th>Pedido</th>
+            <th>SKU</th>
+            <th>Rollo</th>
+            <th class="td-right">Prod.</th>
+            <th class="td-right">Desp. kg</th>
+            <th class="td-right">Min</th>
           </tr>
         </thead>
         <tbody>
-          <% misLogs.forEach(function(l){ %>
+          <% misLogs.forEach(l => { %>
             <tr>
-              <td><%= new Date(l.horaInicio).toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'}) %></td>
+              <td class="td-mono">
+                <%= new Date(l.horaInicio).toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'}) %>
+              </td>
               <td><%= l.selladora %></td>
-              <td><%= l.orden ? l.orden.numero : '—' %></td>
-              <td><%= l.referencia ? l.referencia.sku : '—' %></td>
-              <td><%= l.numeroRollo %></td>
-              <td style="text-align:right;"><%= l.cantidadProducida %></td>
-              <td style="text-align:right;"><%= l.desperdicio_kg %></td>
-              <td><%= l.duracionMin %></td>
+              <td class="td-mono"><%= l.orden ? l.orden.numero : '—' %></td>
+              <td><span class="sku-tag"><%= l.referencia ? l.referencia.sku : '—' %></span></td>
+              <td class="td-mono"><%= l.numeroRollo %></td>
+              <td class="td-right"><%= l.cantidadProducida.toLocaleString('es-CO') %></td>
+              <td class="td-right"><%= l.desperdicio_kg.toFixed(2) %></td>
+              <td class="td-right"><%= l.duracionMin %></td>
             </tr>
-          <% }); %>
+          <% }) %>
         </tbody>
       </table>
     </div>
@@ -137,31 +176,60 @@
 <% } %>
 
 <script>
-  // Selección de item — copia los datos al formulario
-  document.querySelectorAll('.item-card').forEach(function(card){
-    card.addEventListener('click', function(){
-      document.querySelectorAll('.item-card').forEach(c => c.classList.remove('selected'));
-      card.classList.add('selected');
-      document.getElementById('ordenId').value = card.dataset.orden;
-      document.getElementById('itemId').value = card.dataset.item;
-      document.getElementById('refSeleccionada').value =
-        card.dataset.sku + ' (' + card.dataset.ordenNum + ')';
-      document.getElementById('hintPendiente').textContent =
-        'Pendiente en este pedido: ' + card.dataset.pendiente + ' ud (puedes producir solo una parte).';
-      document.getElementById('form-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
-  });
+(function () {
+  // Horas por defecto: inicio = ahora-1h, fin = ahora
+  const pad = n => String(n).padStart(2, '0');
+  const fmt = d =>
+    d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()) +
+    'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
 
-  // Por defecto, la hora de inicio es ahora menos 1h y la de fin "ahora"
-  (function setHorasDefault(){
-    var ahora = new Date();
-    var antes = new Date(ahora.getTime() - 60*60*1000);
-    function fmt(d){
-      var pad = n => String(n).padStart(2,'0');
-      return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())
-        +'T'+pad(d.getHours())+':'+pad(d.getMinutes());
+  const ahora = new Date();
+  const antes = new Date(ahora.getTime() - 3600_000);
+  document.getElementById('inp-inicio').value = fmt(antes);
+  document.getElementById('inp-fin').value    = fmt(ahora);
+
+  // Selección de referencia
+  window.seleccionarItem = function (card) {
+    // Reset todos
+    document.querySelectorAll('.ref-item').forEach(c => {
+      c.classList.remove('selected');
+      const dot = c.querySelector('.sel-dot');
+      dot.style.background = 'transparent';
+      dot.style.borderColor = 'var(--edge)';
+      dot.querySelector('svg').style.display = 'none';
+    });
+
+    // Activar seleccionado
+    card.classList.add('selected');
+    const dot = card.querySelector('.sel-dot');
+    dot.style.background = 'rgba(255,255,255,0.90)';
+    dot.style.borderColor = 'rgba(255,255,255,0.90)';
+    dot.querySelector('svg').style.display = 'block';
+    dot.querySelector('path').setAttribute('stroke', '#000');
+
+    // Llenar campos ocultos
+    document.getElementById('inp-orden').value = card.dataset.orden;
+    document.getElementById('inp-item').value  = card.dataset.item;
+    document.getElementById('inp-ref').value   =
+      card.dataset.sku + ' · ' + card.dataset.nombre + ' (' + card.dataset.num + ')';
+    document.getElementById('inp-ref').style.color = 'var(--ink-2)';
+
+    const pend = parseInt(card.dataset.pendiente);
+    document.getElementById('hint-pend').textContent =
+      'Pendiente en este pedido: ' + pend.toLocaleString('es-CO') +
+      ' ud. Puedes producir una parte y otra selladora continúa el resto.';
+
+    // Scroll suave al formulario
+    document.getElementById('form-card')
+      .scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  // Validación mínima antes de enviar
+  document.getElementById('form-turno').addEventListener('submit', function (e) {
+    if (!document.getElementById('inp-orden').value) {
+      e.preventDefault();
+      alert('Selecciona una referencia en la planilla antes de guardar el turno.');
     }
-    document.getElementById('horaInicio').value = fmt(antes);
-    document.getElementById('horaFin').value    = fmt(ahora);
-  })();
+  });
+})();
 </script>
