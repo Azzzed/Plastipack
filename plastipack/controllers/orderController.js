@@ -32,14 +32,12 @@ exports.listarPedidos = async (req, res, next) => {
  */
 exports.formularioNuevo = async (req, res, next) => {
   try {
-    // Limitamos a 200 para el dropdown inicial; el front-end usa búsqueda AJAX para el resto.
     const referencias = await Reference.find({ activo: true })
       .select('sku nombre tipo destino')
       .sort('sku')
       .limit(200)
       .lean();
 
-    // Fecha mínima de entrega: hoy + 15 días, formateada para input[type=date]
     const min = new Date();
     min.setDate(min.getDate() + 15);
     const fechaMinima = min.toISOString().split('T')[0];
@@ -56,7 +54,6 @@ exports.formularioNuevo = async (req, res, next) => {
 
 /**
  * Endpoint AJAX para buscar referencias por SKU/nombre.
- * Usado por el formulario de pedido (autocomplete).
  */
 exports.buscarReferencias = async (req, res, next) => {
   try {
@@ -80,17 +77,26 @@ exports.buscarReferencias = async (req, res, next) => {
 
 /**
  * Crea un nuevo pedido.
- * Reglas: mínimo 15 días para entrega, al menos una referencia, pasa
- * automáticamente a producción al crearse (PDF §5).
+ *
+ * ── BUG FIX ──────────────────────────────────────────────────────────────────
+ * express.urlencoded({ extended: true }) usa la librería `qs` para parsear el
+ * body. `qs` convierte "items[ref]" en la clave ANIDADA req.body.items.ref, NO
+ * en la clave literal req.body['items[ref]']. El código anterior usaba el
+ * nombre literal → siempre era undefined → "Debes agregar al menos una
+ * referencia" aunque el carrito tuviese ítems.
+ * ─────────────────────────────────────────────────────────────────────────────
  */
 exports.crearPedido = async (req, res, next) => {
   try {
     const { clienteNombre, clienteContacto, destino, fechaEntrega, notas } = req.body;
 
-    // El form envía arrays paralelos: items[ref][], items[cantidad][], items[valor][]
-    const refs = [].concat(req.body['items[ref]'] || []);
-    const cants = [].concat(req.body['items[cantidad]'] || []);
-    const vals = [].concat(req.body['items[valor]'] || []);
+    // qs parsea items[ref], items[cantidad], items[valor] como:
+    //   req.body.items = { ref: [...], cantidad: [...], valor: [...] }
+    // Para un único ítem los valores son strings; [].concat() los normaliza a arrays.
+    const itemsBody = req.body.items || {};
+    const refs  = [].concat(itemsBody.ref      || []);
+    const cants = [].concat(itemsBody.cantidad || []);
+    const vals  = [].concat(itemsBody.valor    || []);
 
     if (refs.length === 0) {
       req.flash('error', 'Debes agregar al menos una referencia al pedido.');
@@ -106,6 +112,11 @@ exports.crearPedido = async (req, res, next) => {
         estado: 'en_produccion',
       }))
       .filter(it => it.referencia && it.cantidad > 0);
+
+    if (items.length === 0) {
+      req.flash('error', 'Los ítems del pedido no son válidos. Verifica cantidades.');
+      return res.redirect('/pedidos/nuevo');
+    }
 
     const pedido = await Order.create({
       vendedor: req.user._id,
@@ -128,20 +139,20 @@ exports.crearPedido = async (req, res, next) => {
 };
 
 /**
- * Vista detalle de un pedido. Los jefes pueden cambiar estados de cada item.
+ * Vista detalle de un pedido. Los jefes pueden cambiar estados de cada ítem.
  */
 exports.verPedido = async (req, res, next) => {
   try {
     const pedido = await Order.findById(req.params.id)
       .populate('vendedor', 'nombre email')
-      .populate('items.referencia');
+      .populate('items.referencia')
+      .lean({ virtuals: true });
 
     if (!pedido) {
       req.flash('error', 'Pedido no encontrado.');
       return res.redirect('/pedidos');
     }
 
-    // El vendedor solo puede ver sus propios pedidos
     if (
       req.user.rol === 'vendedor' &&
       pedido.vendedor._id.toString() !== req.user._id.toString()
@@ -159,7 +170,7 @@ exports.verPedido = async (req, res, next) => {
 };
 
 /**
- * Cambio de estado de un item del pedido (lo hace el Jefe de Producción).
+ * Cambio de estado de un ítem del pedido (lo hace el Jefe de Producción).
  */
 exports.cambiarEstadoItem = async (req, res, next) => {
   try {

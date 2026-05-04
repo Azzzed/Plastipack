@@ -8,7 +8,7 @@
 <!-- Datos embebidos para el drawer (sin AJAX, sin hash routing) -->
 <script id="ordenes-data" type="application/json">
   <%- JSON.stringify(ordenes.map(o => ({
-    id: o._id,
+    id: String(o._id),
     numero: o.numero,
     cliente: o.cliente,
     vendedor: o.vendedor ? o.vendedor.nombre : '—',
@@ -47,8 +47,9 @@
         <tbody>
           <% ordenes.forEach(o => {
             const dias = Math.ceil((new Date(o.fechaEntrega)-new Date())/(86400000));
+            const oid = String(o._id);
           %>
-            <tr class="clickable" data-orden-id="<%= o._id %>" onclick="abrirDrawer('<%= o._id %>')">
+            <tr class="clickable" onclick="abrirDrawer('<%= oid %>')">
               <td class="td-mono"><strong style="color:var(--ink)"><%= o.numero %></strong></td>
               <td><%= o.cliente.nombre %></td>
               <td class="dim"><%= o.vendedor ? o.vendedor.nombre.split(' ')[0] : '—' %></td>
@@ -61,7 +62,8 @@
               </td>
               <td><span class="badge <%= eb(o.estadoGeneral) %>"><%= o.estadoGeneral.replace('_',' ') %></span></td>
               <td>
-                <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); abrirDrawer('<%= o._id %>')">
+                <button class="btn btn-ghost btn-sm"
+                        onclick="event.stopPropagation(); abrirDrawer('<%= oid %>')">
                   Ver →
                 </button>
               </td>
@@ -73,7 +75,7 @@
   <% } %>
 </div>
 
-<!-- ── DRAWER (cerrado por defecto, sin clase 'open') ── -->
+<!-- ── DRAWER ── -->
 <div class="drawer-overlay" id="drawer-overlay" onclick="cerrarDrawer()"></div>
 <div class="drawer" id="orden-drawer">
   <div class="drawer-header">
@@ -81,42 +83,22 @@
       <div class="modal-title" id="drawer-numero">—</div>
       <div class="sub" id="drawer-estado-badge"></div>
     </div>
-    <button class="modal-close" id="btn-cerrar-drawer" onclick="cerrarDrawer()" type="button">×</button>
+    <button class="modal-close" onclick="cerrarDrawer()" type="button">×</button>
   </div>
 
   <div class="drawer-body">
-    <!-- Info cliente -->
     <div class="card" style="margin-bottom:12px;">
       <h3>Información del cliente</h3>
       <div class="info-grid" style="margin-top:10px;">
-        <div class="info-row">
-          <span class="info-label">Cliente</span>
-          <span class="info-value" id="drawer-cliente">—</span>
-        </div>
-        <div class="info-row">
-          <span class="info-label">Contacto</span>
-          <span class="info-value" id="drawer-contacto">—</span>
-        </div>
-        <div class="info-row">
-          <span class="info-label">Vendedor</span>
-          <span class="info-value" id="drawer-vendedor">—</span>
-        </div>
-        <div class="info-row">
-          <span class="info-label">Destino</span>
-          <span class="info-value" id="drawer-destino">—</span>
-        </div>
-        <div class="info-row">
-          <span class="info-label">Entrega</span>
-          <span class="info-value" id="drawer-entrega">—</span>
-        </div>
-        <div class="info-row">
-          <span class="info-label">Total</span>
-          <span class="info-value" id="drawer-total">—</span>
-        </div>
+        <div class="info-row"><span class="info-label">Cliente</span><span class="info-value" id="drawer-cliente">—</span></div>
+        <div class="info-row"><span class="info-label">Contacto</span><span class="info-value" id="drawer-contacto">—</span></div>
+        <div class="info-row"><span class="info-label">Vendedor</span><span class="info-value" id="drawer-vendedor">—</span></div>
+        <div class="info-row"><span class="info-label">Destino</span><span class="info-value" id="drawer-destino">—</span></div>
+        <div class="info-row"><span class="info-label">Entrega</span><span class="info-value" id="drawer-entrega">—</span></div>
+        <div class="info-row"><span class="info-label">Total</span><span class="info-value" id="drawer-total">—</span></div>
       </div>
     </div>
 
-    <!-- Referencias -->
     <div class="card">
       <h3>Referencias del pedido</h3>
       <div id="drawer-refs" style="margin-top:10px;"></div>
@@ -131,62 +113,71 @@
 
 <script>
 (function () {
-  // Carga datos embebidos — NO depende del hash de la URL
-  const ORDENES = JSON.parse(document.getElementById('ordenes-data').textContent);
-  const mapaOrdenes = {};
-  ORDENES.forEach(o => { mapaOrdenes[o.id] = o; });
+  var ORDENES = [];
+  try {
+    ORDENES = JSON.parse(document.getElementById('ordenes-data').textContent);
+  } catch (e) {
+    console.error('Error parsing ordenes-data:', e);
+  }
 
-  const BADGE = {
+  var mapaOrdenes = {};
+  ORDENES.forEach(function (o) { mapaOrdenes[o.id] = o; });
+
+  var BADGE = {
     en_espera: 'badge-espera', en_produccion: 'badge-produccion',
     parcial: 'badge-parcial', completado: 'badge-completado', entregado: 'badge-entregado'
   };
 
   window.abrirDrawer = function (id) {
-    const o = mapaOrdenes[id];
+    var o = mapaOrdenes[id];
     if (!o) return;
 
     // Poblar campos
-    document.getElementById('drawer-numero').textContent = o.numero;
-    document.getElementById('drawer-cliente').textContent = o.cliente.nombre || '—';
-    document.getElementById('drawer-contacto').textContent = o.cliente.contacto || '—';
-    document.getElementById('drawer-vendedor').textContent = o.vendedor || '—';
-    document.getElementById('drawer-destino').textContent = o.destino || '—';
-    document.getElementById('drawer-entrega').textContent =
-      new Date(o.fechaEntrega).toLocaleDateString('es-CO');
-    document.getElementById('drawer-total').textContent =
-      '$' + (o.total || 0).toLocaleString('es-CO');
+    document.getElementById('drawer-numero').textContent    = o.numero;
+    document.getElementById('drawer-cliente').textContent   = (o.cliente && o.cliente.nombre) || '—';
+    document.getElementById('drawer-contacto').textContent  = (o.cliente && o.cliente.contacto) || '—';
+    document.getElementById('drawer-vendedor').textContent  = o.vendedor || '—';
+    document.getElementById('drawer-destino').textContent   = o.destino  || '—';
+    document.getElementById('drawer-entrega').textContent   = new Date(o.fechaEntrega).toLocaleDateString('es-CO');
+    document.getElementById('drawer-total').textContent     = '$' + (o.total || 0).toLocaleString('es-CO');
 
-    const estadoEl = document.getElementById('drawer-estado-badge');
-    const cls = BADGE[o.estadoGeneral] || 'badge-espera';
-    estadoEl.innerHTML = `<span class="badge ${cls}">${o.estadoGeneral.replace('_', ' ')}</span>`;
+    var estadoEl = document.getElementById('drawer-estado-badge');
+    var cls = BADGE[o.estadoGeneral] || 'badge-espera';
+    estadoEl.innerHTML = '<span class="badge ' + cls + '">' + o.estadoGeneral.replace('_', ' ') + '</span>';
 
-    // Referencias
-    const refsEl = document.getElementById('drawer-refs');
-    if (!o.items.length) {
+    var refsEl = document.getElementById('drawer-refs');
+    if (!o.items || !o.items.length) {
       refsEl.innerHTML = '<p class="muted">Sin referencias.</p>';
     } else {
-      refsEl.innerHTML = o.items.map(it => `
-        <div class="inset" style="margin-bottom:6px;">
-          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;">
-            <span class="sku-tag">${it.sku}</span>
-            <span class="badge ${BADGE[it.estado] || 'badge-espera'}" style="font-size:.65rem;">
-              ${it.estado.replace('_', ' ')}
-            </span>
-          </div>
-          <div style="font-size:.82rem;color:var(--ink-2);margin-bottom:4px;">${it.nombre}</div>
-          <div class="dim">
-            ${(it.producido).toLocaleString('es-CO')} / ${it.cantidad.toLocaleString('es-CO')} ud
-            &nbsp;·&nbsp; $${it.valorUnitario.toLocaleString('es-CO')}/ud
-          </div>
-        </div>
-      `).join('');
+      refsEl.innerHTML = o.items.map(function (it) {
+        var pct = it.cantidad > 0 ? Math.min(100, Math.round((it.producido / it.cantidad) * 100)) : 0;
+        return '<div class="inset" style="margin-bottom:6px;">'
+          + '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;">'
+          + '<span class="sku-tag">' + it.sku + '</span>'
+          + '<span class="badge ' + (BADGE[it.estado] || 'badge-espera') + '" style="font-size:.65rem;">' + it.estado.replace('_', ' ') + '</span>'
+          + '</div>'
+          + '<div style="font-size:.82rem;color:var(--ink-2);margin-bottom:4px;">' + it.nombre + '</div>'
+          + '<div class="dim">' + it.producido.toLocaleString('es-CO') + ' / ' + it.cantidad.toLocaleString('es-CO') + ' ud'
+          + ' &nbsp;·&nbsp; $' + it.valorUnitario.toLocaleString('es-CO') + '/ud</div>'
+          + '<div class="progress-bar" style="margin-top:6px;"><div class="progress-bar-fill" style="width:' + pct + '%;"></div></div>'
+          + '</div>';
+      }).join('');
     }
 
     document.getElementById('btn-gestionar').href = '/pedidos/' + o.id;
 
-    // Abrir (añadir clase open, nunca en carga)
-    document.getElementById('orden-drawer').classList.add('open');
-    document.getElementById('drawer-overlay').classList.add('open');
+    // ── BUG FIX ───────────────────────────────────────────────────────────────
+    // El script de layout.ejs puede haber puesto display:none inline en el drawer
+    // antes de que este script se ejecute. Hay que limpiarlo ANTES de añadir
+    // la clase "open"; de lo contrario "display:none" tiene mayor prioridad y
+    // el drawer permanece invisible aunque el CSS de .open esté activo.
+    // ─────────────────────────────────────────────────────────────────────────
+    var drawer  = document.getElementById('orden-drawer');
+    var overlay = document.getElementById('drawer-overlay');
+    drawer.style.removeProperty('display');
+    overlay.style.removeProperty('display');
+    drawer.classList.add('open');
+    overlay.classList.add('open');
   };
 
   window.cerrarDrawer = function () {
@@ -194,7 +185,6 @@
     document.getElementById('drawer-overlay').classList.remove('open');
   };
 
-  // Cerrar con Escape
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') cerrarDrawer();
   });

@@ -59,24 +59,28 @@
   <%- body %>
 </main>
 
-<%/* ── Neutraliza cualquier drawer/modal abierto por JS externos ── */%>
+<%/*
+  ── Drawer / Modal guardia ────────────────────────────────────────────────────
+  Sólo elimina la clase "open" de cualquier drawer o modal que pudiera haberse
+  quedado abierto por un script tardío. NO establece display:none porque:
+    · .drawer  ya está oculto por  transform:translateX(100%)
+    · .drawer-overlay / .modal-overlay ya están ocultos por  opacity:0 + pointer-events:none
+  Forzar display:none con style inline tenía prioridad sobre el CSS de .open y
+  hacía que los drawers/modales nunca se pudieran abrir de nuevo.
+  ─────────────────────────────────────────────────────────────────────────────
+*/%>
 <script>
 (function () {
-  function killRogueDrawers() {
+  function resetDrawers() {
     document.querySelectorAll('.drawer, .drawer-overlay, .modal-overlay').forEach(function (el) {
       el.classList.remove('open');
-      // Solo ocultar si NO tiene un botón de apertura manual en la página
-      if (!document.querySelector('[data-drawer-managed]')) {
-        el.style.display = 'none';
-      }
+      // Borra cualquier display:none que scripts anteriores hayan podido inyectar
+      el.style.removeProperty('display');
     });
   }
-  // Ejecutar inmediatamente al parsear el script
-  killRogueDrawers();
-  // Ejecutar también tras DOMContentLoaded (cubre scripts diferidos)
-  document.addEventListener('DOMContentLoaded', killRogueDrawers);
-  // Ejecutar tras window.load (cubre scripts async)
-  window.addEventListener('load', killRogueDrawers);
+  // Ejecutar antes del DOMContentLoaded (cubre scripts inline ya parseados)
+  resetDrawers();
+  document.addEventListener('DOMContentLoaded', resetDrawers);
 })();
 </script>
 

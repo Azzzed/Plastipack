@@ -113,7 +113,9 @@
                       Referencias
                     </div>
                     <% p.items.forEach(it => {
-                      const pct = it.cantidad > 0 ? Math.min(100, Math.round(((it.producido||0)/it.cantidad)*100)) : 0;
+                      const pct = it.cantidad > 0
+                        ? Math.min(100, Math.round(((it.producido||0)/it.cantidad)*100))
+                        : 0;
                     %>
                       <div class="inset" style="margin-bottom:6px;">
                         <div style="display:flex;align-items:center;gap:8px;
@@ -169,7 +171,7 @@
     if (!row) return;
     var opening = !row.classList.contains('open');
 
-    // Cerrar todos primero
+    // Cerrar todos los expand-rows primero
     document.querySelectorAll('.expand-row').forEach(function (r) {
       r.classList.remove('open');
     });
@@ -185,11 +187,5 @@
   }
 
   window.togglePedido = togglePedido;
-
-  // Seguridad: cerrar cualquier drawer o modal abierto por JS externo
-  document.querySelectorAll('.drawer, .drawer-overlay, .modal-overlay').forEach(function (el) {
-    el.classList.remove('open');
-    el.style.display = 'none';
-  });
 })();
 </script>
