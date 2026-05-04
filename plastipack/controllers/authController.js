@@ -11,7 +11,10 @@ exports.loginPage = (req, res) => {
 
 exports.registerPage = (req, res) => {
   if (req.isAuthenticated()) return res.redirect('/');
-  res.render('register', { titulo: 'Crear cuenta' });
+  res.render('register', {
+    titulo: 'Crear cuenta',
+    googleHabilitado: passport.googleConfigured,
+  });
 };
 
 /**

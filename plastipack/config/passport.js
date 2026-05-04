@@ -119,6 +119,7 @@ passport.deserializeUser(async (id, done) => {
   }
 });
 
+// Exportar googleConfigured y resolveInitialRole para usar en otros módulos
 passport.googleConfigured = googleConfigured;
 passport.resolveInitialRole = resolveInitialRole;
 

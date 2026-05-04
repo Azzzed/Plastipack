@@ -32,11 +32,15 @@ Abre: http://localhost:3000
 
 ## Configurar Google OAuth 2.0
 
+**Para una guía paso a paso completa, ve a:** [`../GOOGLE_AUTH_SETUP.md`](../GOOGLE_AUTH_SETUP.md)
+
+Resumen rápido:
+
 1. Ve a https://console.cloud.google.com/apis/credentials
 2. *Create credentials → OAuth client ID → Web application*
 3. **Authorized JavaScript origins:** la URL pública (`http://localhost:3000` o tu URL de Codespaces).
 4. **Authorized redirect URIs:** `${BASE_URL}/auth/google/callback`
-5. Copia *Client ID* y *Client Secret* al `.env`.
+5. Copia *Client ID* y *Client Secret* al `.env` en las variables `GOOGLE_CLIENT_ID` y `GOOGLE_CLIENT_SECRET`.
 
 ---
 

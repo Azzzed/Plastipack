@@ -64,18 +64,20 @@ app.use((req, res, next) => {
 });
 
 // ----- Rutas -----
-app.use('/', require('./routes/index'));
 app.use('/auth', require('./routes/auth'));
-app.use('/pedidos', require('./routes/orders'));
-app.use('/referencias', require('./routes/references'));
-app.use('/operario', require('./routes/production'));
-app.use('/', require('./routes/reports')); // /reportes, /ordenes, /admin/...
 
-// Página informativa para usuarios sin rol asignado
+// Página informativa para usuarios sin rol asignado (ANTES que otras rutas)
 app.get('/sin-rol', (req, res) => {
   if (!req.user) return res.redirect('/auth/login');
   res.render('sin-rol', { titulo: 'Cuenta pendiente' });
 });
+
+// Resto de rutas protegidas
+app.use('/', require('./routes/index'));
+app.use('/pedidos', require('./routes/orders'));
+app.use('/referencias', require('./routes/references'));
+app.use('/operario', require('./routes/production'));
+app.use('/', require('./routes/reports')); // /reportes, /ordenes, /admin/...
 
 // 404
 app.use((req, res) => {
