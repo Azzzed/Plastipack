@@ -645,18 +645,22 @@ a.stat-tile { text-decoration: none; cursor: pointer; }
 .product-card:hover .pc-expand-btn { border-color: var(--edge); color: var(--ink-2); }
 
 /* ─── EXPAND ROW ─────────────────────────────────────────────────── */
-.expand-row {
-  overflow: hidden;
-  max-height: 0;
-  transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
-  opacity: 0;
-}
-.expand-row.open { max-height: 800px; opacity: 1; }
 .expand-row td { padding: 0; }
 .expand-content {
-  padding: 16px;
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  padding: 0 16px;
   background: rgba(0,0,0,0.25);
   border-top: 1px solid var(--edge-dim);
+  transition: max-height 0.42s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.30s ease,
+              padding 0.30s ease;
+}
+.expand-row.open .expand-content {
+  max-height: 1000px;
+  opacity: 1;
+  padding: 16px;
 }
 .expand-btn {
   background: none;
@@ -1114,3 +1118,4 @@ input[type="radio"]:checked + .rol-chip {
   border-color: var(--edge-bright);
   color: var(--ink);
 }
+/* ─── EXPAND ROW

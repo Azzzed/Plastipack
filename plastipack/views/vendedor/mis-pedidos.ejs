@@ -73,8 +73,8 @@
               </td>
             </tr>
 
-            <!-- Fila expandible (oculta por defecto) -->
-            <tr class="expand-row" id="prow-<%= pid %>">
+            <!-- Fila expandible — display:none por defecto para no dejar espacio vacío -->
+            <tr class="expand-row" id="prow-<%= pid %>" style="display:none;">
               <td colspan="7">
                 <div class="expand-content">
 
@@ -165,15 +165,24 @@
 
 <script>
 (function () {
+  var TRANSITION_MS = 430; // >= duración CSS max-height del expand-content
+
   function togglePedido(id) {
     var row = document.getElementById('prow-' + id);
     var btn = document.getElementById('pbtn-' + id);
     if (!row) return;
+
     var opening = !row.classList.contains('open');
 
-    // Cerrar todos los expand-rows primero
-    document.querySelectorAll('.expand-row').forEach(function (r) {
+    // Cerrar todos los que estén abiertos
+    document.querySelectorAll('.expand-row.open').forEach(function (r) {
       r.classList.remove('open');
+      // Tras la transición, hacer display:none para liberar el espacio
+      (function (el) {
+        setTimeout(function () {
+          if (!el.classList.contains('open')) el.style.display = 'none';
+        }, TRANSITION_MS);
+      })(r);
     });
     document.querySelectorAll('.expand-btn').forEach(function (b) {
       b.classList.remove('open');
@@ -181,8 +190,15 @@
 
     // Abrir el seleccionado si estaba cerrado
     if (opening) {
-      row.classList.add('open');
-      btn.classList.add('open');
+      // display:table-row primero para que el elemento sea renderizable,
+      // luego .open en el siguiente frame para que la transición CSS de .expand-content funcione.
+      row.style.display = 'table-row';
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () {
+          row.classList.add('open');
+          btn.classList.add('open');
+        });
+      });
     }
   }
 

@@ -75,9 +75,9 @@
   <% } %>
 </div>
 
-<!-- ── DRAWER ── -->
-<div class="drawer-overlay" id="drawer-overlay" onclick="cerrarDrawer()"></div>
-<div class="drawer" id="orden-drawer">
+<!-- ── DRAWER — empieza como display:none, el JS lo muestra al abrir ── -->
+<div class="drawer-overlay" id="drawer-overlay" onclick="cerrarDrawer()" style="display:none;"></div>
+<div class="drawer" id="orden-drawer" style="display:none;">
   <div class="drawer-header">
     <div>
       <div class="modal-title" id="drawer-numero">—</div>
@@ -128,6 +128,8 @@
     parcial: 'badge-parcial', completado: 'badge-completado', entregado: 'badge-entregado'
   };
 
+  var TRANSITION_MS = 380; // debe ser >= duración CSS del drawer
+
   window.abrirDrawer = function (id) {
     var o = mapaOrdenes[id];
     if (!o) return;
@@ -166,23 +168,35 @@
 
     document.getElementById('btn-gestionar').href = '/pedidos/' + o.id;
 
-    // ── BUG FIX ───────────────────────────────────────────────────────────────
-    // El script de layout.ejs puede haber puesto display:none inline en el drawer
-    // antes de que este script se ejecute. Hay que limpiarlo ANTES de añadir
-    // la clase "open"; de lo contrario "display:none" tiene mayor prioridad y
-    // el drawer permanece invisible aunque el CSS de .open esté activo.
-    // ─────────────────────────────────────────────────────────────────────────
+    // Mostrar el drawer: primero el display (para que sea renderizable),
+    // luego en el siguiente frame añadir .open para que la transición CSS funcione.
     var drawer  = document.getElementById('orden-drawer');
     var overlay = document.getElementById('drawer-overlay');
-    drawer.style.removeProperty('display');
-    overlay.style.removeProperty('display');
-    drawer.classList.add('open');
-    overlay.classList.add('open');
+    drawer.style.display  = 'flex';
+    overlay.style.display = 'block';
+
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        drawer.classList.add('open');
+        overlay.classList.add('open');
+      });
+    });
   };
 
   window.cerrarDrawer = function () {
-    document.getElementById('orden-drawer').classList.remove('open');
-    document.getElementById('drawer-overlay').classList.remove('open');
+    var drawer  = document.getElementById('orden-drawer');
+    var overlay = document.getElementById('drawer-overlay');
+
+    drawer.classList.remove('open');
+    overlay.classList.remove('open');
+
+    // Esperar a que termine la transición CSS antes de hacer display:none
+    setTimeout(function () {
+      if (!drawer.classList.contains('open')) {
+        drawer.style.display  = 'none';
+        overlay.style.display = 'none';
+      }
+    }, TRANSITION_MS);
   };
 
   document.addEventListener('keydown', function (e) {

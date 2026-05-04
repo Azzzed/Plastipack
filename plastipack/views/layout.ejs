@@ -61,12 +61,8 @@
 
 <%/*
   ── Drawer / Modal guardia ────────────────────────────────────────────────────
-  Sólo elimina la clase "open" de cualquier drawer o modal que pudiera haberse
-  quedado abierto por un script tardío. NO establece display:none porque:
-    · .drawer  ya está oculto por  transform:translateX(100%)
-    · .drawer-overlay / .modal-overlay ya están ocultos por  opacity:0 + pointer-events:none
-  Forzar display:none con style inline tenía prioridad sobre el CSS de .open y
-  hacía que los drawers/modales nunca se pudieran abrir de nuevo.
+  Solo elimina la clase "open". El display (none/flex) lo gestiona cada
+  componente individualmente via JS para no interferir con su estado inicial.
   ─────────────────────────────────────────────────────────────────────────────
 */%>
 <script>
@@ -74,11 +70,9 @@
   function resetDrawers() {
     document.querySelectorAll('.drawer, .drawer-overlay, .modal-overlay').forEach(function (el) {
       el.classList.remove('open');
-      // Borra cualquier display:none que scripts anteriores hayan podido inyectar
-      el.style.removeProperty('display');
+      // NO tocamos el display — cada componente lo gestiona con su propio JS
     });
   }
-  // Ejecutar antes del DOMContentLoaded (cubre scripts inline ya parseados)
   resetDrawers();
   document.addEventListener('DOMContentLoaded', resetDrawers);
 })();
